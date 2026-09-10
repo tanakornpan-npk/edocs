@@ -1,0 +1,22 @@
+﻿@import "tailwindcss";
+
+@theme {
+  --color-ku-green: #006633;
+  --color-ku-green-dark: #004d26;
+  --color-ku-green-light: #008744;
+  --color-ku-gold: #FFC72C;
+  --color-ku-gold-dark: #E5A823;
+  --color-ku-gold-light: #FFDF80;
+  --font-sans: 'Prompt', 'Kanit', 'Sarabun', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: #f8fafc;
+    color: #1e293b;
+    font-family: var(--font-sans);
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
