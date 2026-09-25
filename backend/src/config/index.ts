@@ -19,6 +19,9 @@ export const config = {
   promptpay: {
     accountNumber: process.env.PROMPTPAY_ACCOUNT || '0994000159491',
   },
+  thaiQr: {
+    billerId: process.env.THAI_QR_BILLER_ID || '099400063727601',
+  },
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   kuAllLogin: {
     driver: process.env.KU_ALLLOGIN_DRIVER || 'oauth',

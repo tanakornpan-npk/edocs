@@ -76,7 +76,7 @@ export const ThaiQrManagementTab: React.FC = () => {
     merchant_name: string;
     service_name_th: string;
   }>({
-    biller_id: '099400015949101',
+    biller_id: '099400063727601',
     merchant_name: 'KASETSART UNIVERSITY CSC',
     service_name_th: 'มหาวิทยาลัยเกษตรศาสตร์ ว.เฉลิมพระเกียรติฯ',
   });
@@ -604,7 +604,7 @@ export const ThaiQrManagementTab: React.FC = () => {
                   value={billerForm.biller_id}
                   onChange={(e) => setBillerForm({ ...billerForm, biller_id: e.target.value.replace(/[^0-9]/g, '') })}
                   className="w-full px-3 py-2 text-sm font-mono border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#006633]/20 focus:outline-none"
-                  placeholder="เช่น 099400015949101"
+                  placeholder="เช่น 099400063727601"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
                   หมายเลขประจำตัวผู้เสียภาษี 13 หลัก + รหัสบริการ 2 หลัก
@@ -681,7 +681,7 @@ export const ThaiQrManagementTab: React.FC = () => {
                   <div>
                     <div className="text-[10px] text-emerald-200">Biller ID</div>
                     <div className="font-mono font-bold text-xs text-amber-300">
-                      {billerForm.biller_id || '099400015949101'}
+                      {billerForm.biller_id || '099400063727601'}
                     </div>
                   </div>
                   <div>

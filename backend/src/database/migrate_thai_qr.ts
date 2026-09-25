@@ -79,16 +79,18 @@ export async function migrateThaiQr() {
     `);
     console.log('✅ Altered existing tables (ref2_code in docs/pkgs, biller_id/ref1/ref2 in payments)');
 
-    // 7. Seed Biller Config
-    const billerRes = await client.query('SELECT COUNT(*) FROM biller_configs');
-    if (parseInt(billerRes.rows[0].count, 10) === 0) {
-      await client.query(`
-        INSERT INTO biller_configs (biller_id, merchant_name, service_name_th, is_active)
-        VALUES ('099400015949101', 'KASETSART UNIVERSITY CSC', 'มหาวิทยาลัยเกษตรศาสตร์ ว.เฉลิมพระเกียรติฯ', true)
-        ON CONFLICT (biller_id) DO NOTHING;
-      `);
-      console.log('✅ Seeded default biller config');
-    }
+    // 7. Seed/Update Active Biller Config
+    await client.query(`UPDATE biller_configs SET is_active = false;`);
+    await client.query(`
+      INSERT INTO biller_configs (biller_id, merchant_name, service_name_th, is_active)
+      VALUES ('099400063727601', 'KASETSART UNIVERSITY CSC', 'มหาวิทยาลัยเกษตรศาสตร์ ว.เฉลิมพระเกียรติฯ', true)
+      ON CONFLICT (biller_id) DO UPDATE SET
+        merchant_name = EXCLUDED.merchant_name,
+        service_name_th = EXCLUDED.service_name_th,
+        is_active = true,
+        updated_at = CURRENT_TIMESTAMP;
+    `);
+    console.log('✅ Seeded/Updated active biller config to 099400063727601');
 
     // 8. Seed Payment Categories
     const categoriesData = [

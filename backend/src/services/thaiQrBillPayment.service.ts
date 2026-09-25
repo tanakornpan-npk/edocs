@@ -74,7 +74,7 @@ export class ThaiQrBillPaymentService {
     }
 
     return {
-      billerId: '099400015949101',
+      billerId: config.thaiQr.billerId || '099400063727601',
       merchantName: 'KASETSART UNIVERSITY CSC',
       serviceNameTh: 'มหาวิทยาลัยเกษตรศาสตร์ ว.เฉลิมพระเกียรติฯ',
     };
