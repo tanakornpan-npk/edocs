@@ -18,6 +18,18 @@ interface QrPaymentModalProps {
   onViewReceipt: (orderNo: string) => void;
 }
 
+function sanitizeQrDataUrl(raw?: string): string {
+  if (!raw) return '';
+  const stripped = raw.replace(/&#x[0-9a-fA-F]+;/gi, '').replace(/&#\d+;/g, '');
+  if (stripped.includes('base64,')) {
+    const parts = stripped.split('base64,');
+    const mime = parts[0].match(/data:(image\/[a-zA-Z0-9+.-]+);/i)?.[1] || 'image/png';
+    const base64 = parts[1].replace(/[^A-Za-z0-9+/=]/g, '');
+    return `data:${mime};base64,${base64}`;
+  }
+  return stripped;
+}
+
 export const QrPaymentModal: React.FC<QrPaymentModalProps> = ({
   isOpen,
   orderNo,
@@ -39,7 +51,7 @@ export const QrPaymentModal: React.FC<QrPaymentModalProps> = ({
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Dynamic state loaded if not provided initially
-  const [currentQrUrl, setCurrentQrUrl] = useState<string>(initialQrDataUrl || '');
+  const [currentQrUrl, setCurrentQrUrl] = useState<string>(sanitizeQrDataUrl(initialQrDataUrl));
   const [currentAmount, setCurrentAmount] = useState<number>(amount || 0);
   const [currentThaiBahtText, setCurrentThaiBahtText] = useState<string>(initialThaiBahtText || '');
   const [currentBillerId, setCurrentBillerId] = useState<string>(initialBillerId || '099400063727601');
@@ -55,7 +67,7 @@ export const QrPaymentModal: React.FC<QrPaymentModalProps> = ({
     setIsSuccess(false);
 
     // Sync from props
-    if (initialQrDataUrl) setCurrentQrUrl(initialQrDataUrl);
+    if (initialQrDataUrl) setCurrentQrUrl(sanitizeQrDataUrl(initialQrDataUrl));
     if (amount) setCurrentAmount(amount);
     if (initialThaiBahtText) setCurrentThaiBahtText(initialThaiBahtText);
     if (initialBillerId) setCurrentBillerId(initialBillerId);
@@ -73,7 +85,7 @@ export const QrPaymentModal: React.FC<QrPaymentModalProps> = ({
             if (data.total_amount) setCurrentAmount(parseFloat(data.total_amount));
             if (data.amount_thai_text) setCurrentThaiBahtText(data.amount_thai_text);
             if (data.payment) {
-              if (data.payment.qr_data_url) setCurrentQrUrl(data.payment.qr_data_url);
+              if (data.payment.qr_data_url) setCurrentQrUrl(sanitizeQrDataUrl(data.payment.qr_data_url));
               if (data.payment.biller_id) setCurrentBillerId(data.payment.biller_id);
               if (data.payment.ref1) setCurrentRef1(data.payment.ref1);
               if (data.payment.ref2) setCurrentRef2(data.payment.ref2);
@@ -180,7 +192,7 @@ export const QrPaymentModal: React.FC<QrPaymentModalProps> = ({
               <div className="relative p-3.5 bg-slate-50 rounded-2xl border-2 border-emerald-400 inline-block shadow-inner mb-3">
                 {currentQrUrl ? (
                   <img
-                    src={currentQrUrl}
+                    src={sanitizeQrDataUrl(currentQrUrl)}
                     alt="Thai QR Payment"
                     className="w-52 h-52 object-contain mx-auto"
                   />

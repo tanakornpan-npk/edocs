@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { db } from '../database/db.js';
 import { PromptPayService } from '../services/promptpay.service.js';
 import { ThaiQrBillPaymentService } from '../services/thaiQrBillPayment.service.js';
+import { KuCentralQrService } from '../services/kuCentralQr.service.js';
 
 export class RequestController {
   /**
@@ -272,7 +273,8 @@ export class RequestController {
       if (payment && payment.qr_payload) {
         try {
           if (payment.qr_payload.startsWith('data:image/') || payment.payment_method === 'ku_central_qr') {
-            payment = { ...payment, qr_data_url: payment.qr_payload };
+            const cleanUrl = KuCentralQrService.cleanDataUrl(payment.qr_payload);
+            payment = { ...payment, qr_data_url: cleanUrl || payment.qr_payload };
           } else {
             const qrDataUrl = await QRCode.toDataURL(payment.qr_payload, {
               errorCorrectionLevel: 'M',

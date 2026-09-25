@@ -34,6 +34,18 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
+function sanitizeQrDataUrl(raw?: string): string {
+  if (!raw) return '';
+  const stripped = raw.replace(/&#x[0-9a-fA-F]+;/gi, '').replace(/&#\d+;/g, '');
+  if (stripped.includes('base64,')) {
+    const parts = stripped.split('base64,');
+    const mime = parts[0].match(/data:(image\/[a-zA-Z0-9+.-]+);/i)?.[1] || 'image/png';
+    const base64 = parts[1].replace(/[^A-Za-z0-9+/=]/g, '');
+    return `data:${mime};base64,${base64}`;
+  }
+  return stripped;
+}
+
 export const ThaiQrManagementTab: React.FC = () => {
   const [activeSubSection, setActiveSubSection] = useState<
     'ref2' | 'biller' | 'types' | 'categories' | 'limits' | 'simulator'
@@ -843,7 +855,7 @@ export const ThaiQrManagementTab: React.FC = () => {
 
                         {soapTestResult.qrDataUrl && (
                           <div className="mt-3 flex items-center space-x-4 bg-white p-3 rounded-lg border border-emerald-200">
-                            <img src={soapTestResult.qrDataUrl} alt="SOAP Test QR" className="w-24 h-24 rounded border border-slate-200" />
+                            <img src={sanitizeQrDataUrl(soapTestResult.qrDataUrl)} alt="SOAP Test QR" className="w-24 h-24 rounded border border-slate-200 object-contain" />
                             <div>
                               <div className="font-bold text-slate-800">QR ID: {soapTestResult.qrId || '-'}</div>
                               <div className="text-[11px] text-slate-500">App ID: {soapTestResult.appId || '-'} | App Code: {soapTestResult.appCode}</div>
@@ -1252,7 +1264,7 @@ export const ThaiQrManagementTab: React.FC = () => {
                   {/* QR Image */}
                   <div className="p-3 bg-slate-50 border-2 border-emerald-300 rounded-2xl shadow-inner text-center shrink-0">
                     <img
-                      src={simQrResult.qrDataUrl}
+                      src={sanitizeQrDataUrl(simQrResult.qrDataUrl)}
                       alt="Thai QR Preview"
                       className="w-48 h-48 object-contain mx-auto"
                     />

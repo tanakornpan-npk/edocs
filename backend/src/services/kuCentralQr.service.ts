@@ -131,6 +131,36 @@ export class KuCentralQrService {
   }
 
   /**
+   * ล้าง XML entities (เช่น &#xd;, &#xa;), whitespace, และขึ้นบรรทัดใหม่ออกจาก Base64 Data URL
+   * เพื่อให้ browser สามารถ decode และ render เป็นรูปภาพ <img> ได้อย่างสมบูรณ์
+   */
+  public static cleanDataUrl(raw?: string): string | undefined {
+    if (!raw) return undefined;
+    // 1. ถอด XML character entities เช่น &#xd;, &#xa;, &#x0d;, &#x0a;, &#13;, &#10;
+    const strippedEntities = raw
+      .replace(/&#x[0-9a-fA-F]+;/gi, '')
+      .replace(/&#\d+;/g, '');
+
+    // 2. แยก mime type กับ base64
+    let base64Part = strippedEntities;
+    let mime = 'image/png';
+    if (strippedEntities.includes('base64,')) {
+      const parts = strippedEntities.split('base64,');
+      const prefixMatch = parts[0].match(/data:(image\/[a-zA-Z0-9+.-]+);/i);
+      if (prefixMatch && prefixMatch[1]) {
+        mime = prefixMatch[1];
+      }
+      base64Part = parts[1];
+    }
+
+    // 3. กรองเฉพาะตัวอักษร Base64 ที่ถูกต้องเท่านั้น ([A-Za-z0-9+/=])
+    const cleanBase64 = base64Part.replace(/[^A-Za-z0-9+/=]/g, '');
+    if (!cleanBase64) return undefined;
+
+    return `data:${mime};base64,${cleanBase64}`;
+  }
+
+  /**
    * เรียก Web Service กลางของ มก. (SOAP getOeaQr)
    */
   public static async requestOeaQr(
@@ -197,9 +227,9 @@ export class KuCentralQrService {
       const successMatch = xmlResponse.match(/<(?:\w+:)?success>(.*?)<\/(?:\w+:)?success>/i);
       const isSuccess = successMatch ? successMatch[1].trim().toLowerCase() === 'true' : false;
 
-      // ดึง Base64 Data URL
+      // ดึง Base64 Data URL พร้อมทำความสะอาด XML entities (&#xd;) และ whitespace
       const contentMatch = xmlResponse.match(/<(?:\w+:)?content>([\s\S]*?)<\/(?:\w+:)?content>/i);
-      const qrDataUrl = contentMatch ? contentMatch[1].trim() : undefined;
+      const qrDataUrl = contentMatch ? this.cleanDataUrl(contentMatch[1]) : undefined;
 
       // ดึง ID
       const qrIdMatch = xmlResponse.match(/<(?:\w+:)?id>(.*?)<\/(?:\w+:)?id>/i);
