@@ -126,13 +126,19 @@ async function initDb() {
       console.log('✅ Seed users created.');
     }
 
+    // Initialize Thai QR & REF2 Configurations
+    client.release();
+    const { migrateThaiQr } = await import('./migrate_thai_qr.js');
+    await migrateThaiQr();
+
     console.log('🎉 Database initialization complete!');
   } catch (err: any) {
     console.error('❌ Database initialization error:', err.message);
   } finally {
-    client.release();
+    try { client.release(); } catch (_) {}
     await pool.end();
   }
 }
 
 initDb();
+

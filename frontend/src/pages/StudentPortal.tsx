@@ -210,6 +210,11 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
         amount: res.payment.amount,
         thai_baht_text: res.payment.amount_thai_text,
         qr_data_url: res.payment.qr_data_url,
+        biller_id: res.payment.biller_id,
+        merchant_name: res.payment.merchant_name,
+        service_name_th: res.payment.service_name_th,
+        ref1: res.payment.ref1,
+        ref2: res.payment.ref2,
       });
     } catch (err: any) {
       alert('ไม่สามารถสร้างคำร้องได้: ' + err.message);

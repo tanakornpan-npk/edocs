@@ -119,7 +119,7 @@ export class DocumentController {
    * [Admin] บันทึกประเภทเอกสาร (Create / Update)
    */
   static async saveDocument(req: Request, res: Response): Promise<void> {
-    const { id, code, name_th, name_en, description, price, format, allowed_statuses, processing_days } = req.body;
+    const { id, code, name_th, name_en, description, price, format, allowed_statuses, processing_days, ref2_code } = req.body;
 
     if (!code || !name_th || price === undefined) {
       res.status(400).json({ success: false, message: 'กรุณากรอกรหัส, ชื่อเอกสาร และราคาให้ครบถ้วน' });
@@ -127,19 +127,20 @@ export class DocumentController {
     }
 
     try {
+      const finalRef2 = (ref2_code || '300').trim();
       if (id) {
         const updateRes = await db.query(
           `UPDATE document_types 
-           SET code = $1, name_th = $2, name_en = $3, description = $4, price = $5, format = $6, allowed_statuses = $7, processing_days = $8
-           WHERE id = $9 RETURNING *`,
-          [code, name_th, name_en || '', description || '', parseFloat(price), format || 'both', allowed_statuses || ['S', 'D', 'G'], parseInt(processing_days, 10) || 2, id]
+           SET code = $1, name_th = $2, name_en = $3, description = $4, price = $5, format = $6, allowed_statuses = $7, processing_days = $8, ref2_code = $9
+           WHERE id = $10 RETURNING *`,
+          [code, name_th, name_en || '', description || '', parseFloat(price), format || 'both', allowed_statuses || ['S', 'D', 'G'], parseInt(processing_days, 10) || 2, finalRef2, id]
         );
         res.json({ success: true, message: 'อัปเดตข้อมูลเอกสารเรียบร้อย', data: updateRes.rows[0] });
       } else {
         const insertRes = await db.query(
-          `INSERT INTO document_types (code, name_th, name_en, description, price, format, allowed_statuses, processing_days)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-          [code, name_th, name_en || '', description || '', parseFloat(price), format || 'both', allowed_statuses || ['S', 'D', 'G'], parseInt(processing_days, 10) || 2]
+          `INSERT INTO document_types (code, name_th, name_en, description, price, format, allowed_statuses, processing_days, ref2_code)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+          [code, name_th, name_en || '', description || '', parseFloat(price), format || 'both', allowed_statuses || ['S', 'D', 'G'], parseInt(processing_days, 10) || 2, finalRef2]
         );
         res.json({ success: true, message: 'สร้างประเภทเอกสารใหม่เรียบร้อย', data: insertRes.rows[0] });
       }
@@ -152,7 +153,7 @@ export class DocumentController {
    * [Admin] บันทึกแพ็กเกจเอกสารรวม (Create / Update) พร้อมรายการเอกสารที่เลือกจากแคตตาล็อก
    */
   static async savePackage(req: Request, res: Response): Promise<void> {
-    const { id, code, name_th, description, package_price, is_restricted_whitelist, allowed_statuses, items } = req.body;
+    const { id, code, name_th, description, package_price, is_restricted_whitelist, allowed_statuses, items, ref2_code } = req.body;
 
     if (!code || !name_th || package_price === undefined) {
       res.status(400).json({ success: false, message: 'กรุณากรอกรหัสแพ็กเกจ, ชื่อแพ็กเกจ และราคาให้ครบถ้วน' });
@@ -167,13 +168,14 @@ export class DocumentController {
     try {
       let packageId = id;
       let pkgRecord: any;
+      const finalRef2 = (ref2_code || '300').trim();
 
       if (id) {
         const updateRes = await db.query(
           `UPDATE document_packages 
-           SET code = $1, name_th = $2, description = $3, package_price = $4, is_restricted_whitelist = $5, allowed_statuses = $6
-           WHERE id = $7 RETURNING *`,
-          [code, name_th, description || '', parseFloat(package_price), !!is_restricted_whitelist, allowed_statuses || ['G'], id]
+           SET code = $1, name_th = $2, description = $3, package_price = $4, is_restricted_whitelist = $5, allowed_statuses = $6, ref2_code = $7
+           WHERE id = $8 RETURNING *`,
+          [code, name_th, description || '', parseFloat(package_price), !!is_restricted_whitelist, allowed_statuses || ['G'], finalRef2, id]
         );
         pkgRecord = updateRes.rows[0];
 
@@ -181,9 +183,9 @@ export class DocumentController {
         await db.query(`DELETE FROM package_items WHERE package_id = $1`, [id]);
       } else {
         const insertRes = await db.query(
-          `INSERT INTO document_packages (code, name_th, description, package_price, is_restricted_whitelist, allowed_statuses)
-           VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-          [code, name_th, description || '', parseFloat(package_price), !!is_restricted_whitelist, allowed_statuses || ['G']]
+          `INSERT INTO document_packages (code, name_th, description, package_price, is_restricted_whitelist, allowed_statuses, ref2_code)
+           VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+          [code, name_th, description || '', parseFloat(package_price), !!is_restricted_whitelist, allowed_statuses || ['G'], finalRef2]
         );
         pkgRecord = insertRes.rows[0];
         packageId = pkgRecord.id;

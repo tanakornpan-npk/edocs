@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
+import QRCode from 'qrcode';
 import { db } from '../database/db.js';
 import { PromptPayService } from '../services/promptpay.service.js';
+import { ThaiQrBillPaymentService } from '../services/thaiQrBillPayment.service.js';
 
 export class RequestController {
   /**
@@ -121,21 +123,43 @@ export class RequestController {
         );
       }
 
-      // 5. สร้าง Thai QR Payment
-      const qrData = await PromptPayService.generatePromptPayQr(total_amount, order_no);
+      // 5. หาค่า REF2 ที่เหมาะสมจากรายการเอกสาร (Default คือ '300': ค่าเอกสารสำคัญทางการศึกษา)
+      let resolvedRef2 = '300';
+      try {
+        if (items && items.length > 0) {
+          const firstDocId = items[0].document_type_id;
+          const firstPkgId = items[0].package_id;
+          if (firstDocId) {
+            const docRes = await db.query('SELECT ref2_code FROM document_types WHERE id = $1', [firstDocId]);
+            if (docRes.rows[0]?.ref2_code) resolvedRef2 = docRes.rows[0].ref2_code;
+          } else if (firstPkgId) {
+            const pkgRes = await db.query('SELECT ref2_code FROM document_packages WHERE id = $1', [firstPkgId]);
+            if (pkgRes.rows[0]?.ref2_code) resolvedRef2 = pkgRes.rows[0].ref2_code;
+          }
+        }
+      } catch (err: any) {
+        console.warn('Cannot resolve custom REF2, falling back to 300:', err.message);
+      }
+
+      // สร้าง Thai QR Cross-Bank Bill Payment (Tag 30)
+      const qrData = await ThaiQrBillPaymentService.generateBillPaymentQr({
+        amount: total_amount,
+        ref1: student_id || order_no,
+        ref2: resolvedRef2,
+      });
 
       // บันทึกธุรกรรมการชำระเงิน
       await db.query(
-        `INSERT INTO payments (request_id, order_no, amount, payment_method, qr_payload, qr_expired_at, status)
-         VALUES ($1, $2, $3, 'thai_qr', $4, $5, 'pending')`,
-        [requestRecord.id, order_no, total_amount, qrData.payload, qrData.expiredAt]
+        `INSERT INTO payments (request_id, order_no, amount, payment_method, qr_payload, qr_expired_at, biller_id, ref1, ref2, status)
+         VALUES ($1, $2, $3, 'thai_qr', $4, $5, $6, $7, $8, 'pending')`,
+        [requestRecord.id, order_no, total_amount, qrData.payload, qrData.expiredAt, qrData.billerId, qrData.ref1, qrData.ref2]
       );
 
       // บันทึก Activity Log
       await db.query(
         `INSERT INTO activity_logs (request_id, action_by, action_name, description)
          VALUES ($1, $2, 'CREATE_REQUEST', $3)`,
-        [requestRecord.id, userId || null, `ยื่นคำร้องขอเอกสารสำเร็จ หมายเลข ${order_no}`]
+        [requestRecord.id, userId || null, `ยื่นคำร้องขอเอกสารสำเร็จ หมายเลข ${order_no} (REF2: ${resolvedRef2})`]
       );
 
       res.json({
@@ -145,9 +169,14 @@ export class RequestController {
         request: requestRecord,
         payment: {
           amount: total_amount,
-          amount_thai_text: PromptPayService.thaiBahtText(total_amount),
+          amount_thai_text: qrData.amountThaiText,
           qr_data_url: qrData.qrDataUrl,
           expired_at: qrData.expiredAt,
+          biller_id: qrData.billerId,
+          merchant_name: qrData.merchantName,
+          service_name_th: qrData.serviceNameTh,
+          ref1: qrData.ref1,
+          ref2: qrData.ref2,
         },
       });
     } catch (err: any) {
@@ -224,14 +253,25 @@ export class RequestController {
         `SELECT * FROM payments WHERE request_id = $1 ORDER BY created_at DESC LIMIT 1`,
         [request.id]
       );
-      const payment = payRes.rows[0] || null;
+      let payment = payRes.rows[0] || null;
+      if (payment && payment.qr_payload) {
+        try {
+          const qrDataUrl = await QRCode.toDataURL(payment.qr_payload, {
+            errorCorrectionLevel: 'M',
+            margin: 2,
+            width: 340,
+            color: { dark: '#004d26', light: '#ffffff' },
+          });
+          payment = { ...payment, qr_data_url: qrDataUrl };
+        } catch (_) {}
+      }
 
       res.json({
         success: true,
         data: {
           ...request,
           payment,
-          amount_thai_text: PromptPayService.thaiBahtText(parseFloat(request.total_amount)),
+          amount_thai_text: ThaiQrBillPaymentService.thaiBahtText(parseFloat(request.total_amount)),
         },
       });
     } catch (err: any) {

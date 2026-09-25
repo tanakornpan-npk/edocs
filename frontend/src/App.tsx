@@ -31,8 +31,13 @@ export default function App() {
   const [qrModalData, setQrModalData] = useState<{
     order_no: string;
     amount: number;
-    thai_baht_text: string;
-    qr_data_url: string;
+    thai_baht_text?: string;
+    qr_data_url?: string;
+    biller_id?: string;
+    merchant_name?: string;
+    service_name_th?: string;
+    ref1?: string;
+    ref2?: string;
   } | null>(null);
   const [receiptOrderNo, setReceiptOrderNo] = useState<string | null>(null);
 
@@ -206,6 +211,11 @@ export default function App() {
           amount={qrModalData?.amount || 0}
           thaiBahtText={qrModalData?.thai_baht_text || ''}
           qrDataUrl={qrModalData?.qr_data_url || ''}
+          billerId={qrModalData?.biller_id}
+          merchantName={qrModalData?.merchant_name}
+          serviceNameTh={qrModalData?.service_name_th}
+          ref1={qrModalData?.ref1}
+          ref2={qrModalData?.ref2}
           onClose={() => setQrModalData(null)}
           onPaymentSuccess={(_orderNo) => {}}
           onViewReceipt={(orderNo) => setReceiptOrderNo(orderNo)}

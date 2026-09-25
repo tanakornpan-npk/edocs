@@ -9,6 +9,7 @@ import { PaymentController } from '../controllers/payment.controller.js';
 import { CounterController } from '../controllers/counter.controller.js';
 import { ReportController } from '../controllers/report.controller.js';
 import { AnnouncementController } from '../controllers/announcement.controller.js';
+import { ThaiQrConfigController } from '../controllers/thaiQrConfig.controller.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const router = Router();
@@ -61,5 +62,27 @@ router.get('/announcements', AnnouncementController.getAnnouncements);
 router.get('/announcements/:id', AnnouncementController.getAnnouncementDetail);
 router.post('/admin/announcements', authenticate, requireRoles(['admin']), AnnouncementController.saveAnnouncement);
 router.delete('/admin/announcements/:id', authenticate, requireRoles(['admin']), AnnouncementController.deleteAnnouncement);
+
+// --- 10. Thai QR & REF2 Configurations (Admin) ---
+router.get('/admin/thaiqr/biller', authenticate, requireRoles(['admin']), ThaiQrConfigController.getBillerConfigs);
+router.post('/admin/thaiqr/biller', authenticate, requireRoles(['admin']), ThaiQrConfigController.saveBillerConfig);
+
+router.get('/admin/thaiqr/payment-types', authenticate, requireRoles(['admin']), ThaiQrConfigController.getPaymentTypes);
+router.post('/admin/thaiqr/payment-types', authenticate, requireRoles(['admin']), ThaiQrConfigController.savePaymentType);
+router.delete('/admin/thaiqr/payment-types/:id', authenticate, requireRoles(['admin']), ThaiQrConfigController.deletePaymentType);
+
+router.get('/admin/thaiqr/categories', authenticate, requireRoles(['admin']), ThaiQrConfigController.getCategories);
+router.post('/admin/thaiqr/categories', authenticate, requireRoles(['admin']), ThaiQrConfigController.saveCategory);
+router.delete('/admin/thaiqr/categories/:id', authenticate, requireRoles(['admin']), ThaiQrConfigController.deleteCategory);
+
+router.get('/admin/thaiqr/credit-limits', authenticate, requireRoles(['admin']), ThaiQrConfigController.getCreditLimits);
+router.post('/admin/thaiqr/credit-limits', authenticate, requireRoles(['admin']), ThaiQrConfigController.saveCreditLimit);
+router.delete('/admin/thaiqr/credit-limits/:id', authenticate, requireRoles(['admin']), ThaiQrConfigController.deleteCreditLimit);
+
+router.get('/admin/thaiqr/ref2', authenticate, requireRoles(['admin']), ThaiQrConfigController.getRef2Configs);
+router.post('/admin/thaiqr/ref2', authenticate, requireRoles(['admin']), ThaiQrConfigController.saveRef2Config);
+router.delete('/admin/thaiqr/ref2/:id', authenticate, requireRoles(['admin']), ThaiQrConfigController.deleteRef2Config);
+router.post('/admin/thaiqr/ref2/seed-default', authenticate, requireRoles(['admin']), ThaiQrConfigController.seedDefaults);
+router.post('/admin/thaiqr/test-qr', authenticate, requireRoles(['admin']), ThaiQrConfigController.testGenerateQr);
 
 export default router;

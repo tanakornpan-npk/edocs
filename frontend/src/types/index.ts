@@ -43,6 +43,7 @@ export interface DocumentType {
   format: 'hardcopy' | 'digital' | 'both';
   allowed_statuses: string[];
   processing_days: number;
+  ref2_code?: string;
   is_active: boolean;
 }
 
@@ -54,6 +55,7 @@ export interface DocumentPackage {
   package_price: number | string;
   is_restricted_whitelist: boolean;
   allowed_statuses: string[];
+  ref2_code?: string;
   items?: Array<{
     id?: string;
     document_type_id: string;
@@ -101,7 +103,11 @@ export interface DocumentRequest {
     amount: number;
     receipt_no?: string;
     qr_payload?: string;
+    qr_data_url?: string;
     qr_expired_at?: string;
+    biller_id?: string;
+    ref1?: string;
+    ref2?: string;
   };
 }
 
@@ -119,4 +125,55 @@ export interface Announcement {
   view_count?: number;
   publish_date?: string;
   created_at?: string;
+}
+
+// --- Thai QR & REF2 Types ---
+export interface BillerConfig {
+  id: string;
+  biller_id: string;
+  merchant_name: string;
+  service_name_th: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface PaymentType {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  created_at?: string;
+}
+
+export interface PaymentCategory {
+  id: string;
+  code: string;
+  name: string;
+  created_at?: string;
+}
+
+export interface CreditLimit {
+  id: string;
+  code: string;
+  name: string;
+  created_at?: string;
+}
+
+export interface Ref2Config {
+  id: string;
+  ref2_code: string;
+  name: string;
+  category_id?: string | null;
+  category_name?: string | null;
+  category_code?: string | null;
+  credit_limit_id?: string | null;
+  credit_limit_code?: string | null;
+  credit_limit_name?: string | null;
+  payment_type_id?: string | null;
+  payment_type_code?: string | null;
+  payment_type_name?: string | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
 }

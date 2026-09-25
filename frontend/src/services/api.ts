@@ -109,7 +109,17 @@ export class ApiClient {
       success: boolean;
       order_no: string;
       request: any;
-      payment: { amount: number; amount_thai_text: string; qr_data_url: string; expired_at: string };
+      payment: {
+        amount: number;
+        amount_thai_text: string;
+        qr_data_url: string;
+        expired_at: string;
+        biller_id?: string;
+        merchant_name?: string;
+        service_name_th?: string;
+        ref1?: string;
+        ref2?: string;
+      };
     }>('/requests', {
       method: 'POST',
       body: JSON.stringify(orderData),
@@ -238,6 +248,99 @@ export class ApiClient {
   static async deleteAnnouncement(id: string) {
     return this.request<{ success: boolean; message: string }>(`/admin/announcements/${encodeURIComponent(id)}`, {
       method: 'DELETE',
+    });
+  }
+
+  // --- Thai QR & REF2 Master Management (Admin) ---
+  static async getBillerConfigs() {
+    return this.request<{ success: boolean; data: any[] }>('/admin/thaiqr/biller');
+  }
+
+  static async saveBillerConfig(data: any) {
+    return this.request<{ success: boolean; message: string; data: any }>('/admin/thaiqr/biller', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async getPaymentTypes() {
+    return this.request<{ success: boolean; data: any[] }>('/admin/thaiqr/payment-types');
+  }
+
+  static async savePaymentType(data: any) {
+    return this.request<{ success: boolean; message: string; data: any }>('/admin/thaiqr/payment-types', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async deletePaymentType(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/admin/thaiqr/payment-types/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  static async getPaymentCategories() {
+    return this.request<{ success: boolean; data: any[] }>('/admin/thaiqr/categories');
+  }
+
+  static async savePaymentCategory(data: any) {
+    return this.request<{ success: boolean; message: string; data: any }>('/admin/thaiqr/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async deletePaymentCategory(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/admin/thaiqr/categories/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  static async getCreditLimits() {
+    return this.request<{ success: boolean; data: any[] }>('/admin/thaiqr/credit-limits');
+  }
+
+  static async saveCreditLimit(data: any) {
+    return this.request<{ success: boolean; message: string; data: any }>('/admin/thaiqr/credit-limits', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async deleteCreditLimit(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/admin/thaiqr/credit-limits/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  static async getRef2Configs() {
+    return this.request<{ success: boolean; data: any[] }>('/admin/thaiqr/ref2');
+  }
+
+  static async saveRef2Config(data: any) {
+    return this.request<{ success: boolean; message: string; data: any }>('/admin/thaiqr/ref2', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async deleteRef2Config(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/admin/thaiqr/ref2/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  static async seedDefaultRef2() {
+    return this.request<{ success: boolean; message: string }>('/admin/thaiqr/ref2/seed-default', {
+      method: 'POST',
+    });
+  }
+
+  static async testGenerateQr(data: { amount: number; ref1: string; ref2: string; biller_id?: string }) {
+    return this.request<{ success: boolean; data: any }>('/admin/thaiqr/test-qr', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 }

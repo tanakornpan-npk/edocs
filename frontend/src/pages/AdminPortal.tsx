@@ -38,14 +38,18 @@ import {
   Send,
   Building2,
   ExternalLink,
+  QrCode,
 } from 'lucide-react';
+import { ThaiQrManagementTab } from '../components/admin/ThaiQrManagementTab.js';
 
 interface AdminPortalProps {
   onViewReceipt?: (orderNo: string) => void;
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'requests' | 'docs' | 'packages' | 'rules' | 'staff'>('dashboard');
+  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'requests' | 'docs' | 'packages' | 'rules' | 'staff' | 'thaiqr'>('dashboard');
+  const [ref2Options, setRef2Options] = useState<any[]>([]);
+
   const [documents, setDocuments] = useState<DocumentType[]>([]);
   const [packages, setPackages] = useState<DocumentPackage[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);
@@ -87,6 +91,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
     processing_days: 2,
     format: 'both',
     allowed_statuses: ['S', 'D', 'G'],
+    ref2_code: '300',
   });
 
   // Edit/Add Package Modal
@@ -100,6 +105,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
     is_restricted_whitelist: false,
     allowed_statuses: ['G'],
     items: [],
+    ref2_code: '300',
   });
 
   // Excel Whitelist Upload Modal
@@ -127,16 +133,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [docs, pkgs, staff, dash, ords] = await Promise.all([
+      const [docs, pkgs, staff, dash, ords, ref2Res] = await Promise.all([
         ApiClient.getDocuments(),
         ApiClient.getPackages(),
         ApiClient.getStaffList(),
         ApiClient.getExecutiveDashboard().catch(() => ({ data: null })),
         ApiClient.getCounterOrders().catch(() => ({ data: [] })),
+        ApiClient.getRef2Configs().catch(() => ({ data: [] })),
       ]);
       setDocuments(docs.data || []);
       setPackages(pkgs.data || []);
       setStaffList(staff.data || []);
+      if (ref2Res && ref2Res.data) {
+        setRef2Options(ref2Res.data);
+      }
       if (dash && dash.data) {
         setDashboardData(dash.data);
       }
@@ -427,7 +437,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-12">
       {/* Sub-tab Navigation (Full Width Row) */}
       <div className="w-full bg-slate-100/90 p-1.5 rounded-2xl shadow-inner border border-slate-200/60 mb-6">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5">
           <button
             onClick={() => setActiveSubTab('dashboard')}
             className={`flex items-center justify-center space-x-1.5 py-2.5 px-2 rounded-xl transition text-xs sm:text-sm font-bold ${
@@ -437,7 +447,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
             }`}
           >
             <BarChart3 className="w-4 h-4 shrink-0" />
-            <span className="truncate">แดชบอร์ด & รายงาน</span>
+            <span className="truncate">แดชบอร์ด</span>
           </button>
 
           <button
@@ -449,7 +459,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
             }`}
           >
             <ClipboardList className="w-4 h-4 shrink-0" />
-            <span className="truncate">คำร้องขอเอกสาร ({orders.length})</span>
+            <span className="truncate">คำร้อง ({orders.length})</span>
           </button>
 
           <button
@@ -461,7 +471,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
             }`}
           >
             <FileText className="w-4 h-4 shrink-0" />
-            <span className="truncate">แคตตาล็อก & ราคา ({documents.length})</span>
+            <span className="truncate">เอกสาร ({documents.length})</span>
           </button>
 
           <button
@@ -489,6 +499,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
           </button>
 
           <button
+            onClick={() => setActiveSubTab('thaiqr')}
+            className={`flex items-center justify-center space-x-1.5 py-2.5 px-2 rounded-xl transition text-xs sm:text-sm font-bold ${
+              activeSubTab === 'thaiqr'
+                ? 'bg-[#006633] text-white shadow-md'
+                : 'text-slate-600 hover:text-[#006633] hover:bg-white/70'
+            }`}
+          >
+            <QrCode className="w-4 h-4 shrink-0 text-amber-300" />
+            <span className="truncate">Thai QR (REF2)</span>
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('staff')}
             className={`flex items-center justify-center space-x-1.5 py-2.5 px-2 rounded-xl transition text-xs sm:text-sm font-bold ${
               activeSubTab === 'staff'
@@ -497,7 +519,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
             }`}
           >
             <Users className="w-4 h-4 shrink-0" />
-            <span className="truncate">เจ้าหน้าที่ & ผู้บริหาร ({staffList.length})</span>
+            <span className="truncate">เจ้าหน้าที่ ({staffList.length})</span>
           </button>
         </div>
       </div>
@@ -1803,7 +1825,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
         </div>
       )}
 
+      {/* SUBTAB 6: Thai QR Bill Payment & REF2 Configurations */}
+      {activeSubTab === 'thaiqr' && <ThaiQrManagementTab />}
+
       {/* --- MODAL 1: Document Form (Add / Edit) --- */}
+
       {isDocModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
@@ -1891,6 +1917,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
                     <option value="digital">ฉบับดิจิทัล PDF เท่านั้น</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 mb-1 block">
+                  รหัส REF2 (สำหรับชำระเงิน Thai QR Bill Payment)
+                </label>
+                <select
+                  value={docForm.ref2_code || '300'}
+                  onChange={(e) => setDocForm({ ...docForm, ref2_code: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl bg-white font-mono"
+                >
+                  <option value="300">300 : ค่าเอกสารสำคัญทางการศึกษา (ค่าเริ่มต้น e-Doc)</option>
+                  {ref2Options
+                    .filter((r) => r.ref2_code !== '300')
+                    .map((r) => (
+                      <option key={r.id} value={r.ref2_code}>
+                        {r.ref2_code} : {r.name}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  รหัส REF2 จะถูกนำไปฝังใน QR Code เพื่อให้ระบบการเงินตัดยอดได้อัตโนมัติตามประเภทค่าธรรมเนียม
+                </p>
               </div>
 
               {/* Status Eligibility Checkboxes */}
@@ -2041,6 +2090,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
                   placeholder="เช่น รวม Transcript ไทยและอังกฤษ พร้อมใบรับรองสำเร็จการศึกษาในราคาพิเศษ"
                   className="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700"
                 />
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 mb-1 block">
+                  รหัส REF2 (สำหรับชำระเงิน Thai QR Bill Payment)
+                </label>
+                <select
+                  value={pkgForm.ref2_code || '300'}
+                  onChange={(e) => setPkgForm({ ...pkgForm, ref2_code: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl bg-white font-mono"
+                >
+                  <option value="300">300 : ค่าเอกสารสำคัญทางการศึกษา (ค่าเริ่มต้น e-Doc)</option>
+                  {ref2Options
+                    .filter((r) => r.ref2_code !== '300')
+                    .map((r) => (
+                      <option key={r.id} value={r.ref2_code}>
+                        {r.ref2_code} : {r.name}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  กำหนดรหัส REF2 สำหรับคำร้องที่สั่งซื้อแพ็กเกจนี้
+                </p>
               </div>
 
               {/* Document Catalog Selector */}

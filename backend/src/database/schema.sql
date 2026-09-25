@@ -117,6 +117,9 @@ CREATE TABLE IF NOT EXISTS payments (
     payment_method VARCHAR(30) NOT NULL DEFAULT 'thai_qr',
     qr_payload TEXT,
     qr_expired_at TIMESTAMP WITH TIME ZONE,
+    biller_id VARCHAR(50),
+    ref1 VARCHAR(50),
+    ref2 VARCHAR(50),
     transaction_ref VARCHAR(100),
     status VARCHAR(20) NOT NULL DEFAULT 'pending',
     paid_at TIMESTAMP WITH TIME ZONE,
@@ -132,4 +135,49 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     action_name VARCHAR(50) NOT NULL,
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 10. Thai QR & REF2 Configurations
+CREATE TABLE IF NOT EXISTS biller_configs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    biller_id VARCHAR(50) NOT NULL UNIQUE,
+    merchant_name VARCHAR(150) NOT NULL,
+    service_name_th VARCHAR(200) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS payment_types (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(20) NOT NULL UNIQUE,
+    name VARCHAR(150) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS payment_categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS credit_limits (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(20) NOT NULL UNIQUE,
+    name VARCHAR(150) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS ref2_configs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ref2_code VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    category_id UUID REFERENCES payment_categories(id) ON DELETE SET NULL,
+    credit_limit_id UUID REFERENCES credit_limits(id) ON DELETE SET NULL,
+    payment_type_id UUID REFERENCES payment_types(id) ON DELETE SET NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
