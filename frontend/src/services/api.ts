@@ -43,7 +43,7 @@ export class ApiClient {
   // --- Auth Endpoints ---
   static getKuOAuthRedirectUrl(returnUrl?: string): string {
     const query = returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : '';
-    return `/api/auth/ku${query}`;
+    return `${BASE_URL}/auth/ku${query}`;
   }
 
   static async kuLogin(username: string) {

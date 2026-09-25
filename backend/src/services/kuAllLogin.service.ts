@@ -146,10 +146,10 @@ export class KuAllLoginService {
     }
 
     const profile = (await response.json()) as any;
-    const uid = (profile.userid || profile.uid || profile.sub || '').trim();
+    const uid = (profile.preferred_username || profile.userid || profile.uid || profile.sub || '').trim();
 
     if (!uid) {
-      throw new Error('User ID (uid/userid/sub) is missing from KU All-login profile.');
+      throw new Error('User ID (preferred_username/uid/userid/sub) is missing from KU All-login profile.');
     }
 
     let fullname = '';
@@ -158,8 +158,10 @@ export class KuAllLoginService {
       const first = (profile.thainame || '').trim();
       const last = (profile.surname || '').trim();
       fullname = `${pre} ${first} ${last}`.trim();
+    } else if (profile.given_name || profile.family_name) {
+      fullname = `${profile.given_name || ''} ${profile.family_name || ''}`.trim();
     } else {
-      fullname = (profile.fullname || profile.name || uid).trim();
+      fullname = (profile.name || profile.fullname || uid).trim();
     }
 
     const email = (

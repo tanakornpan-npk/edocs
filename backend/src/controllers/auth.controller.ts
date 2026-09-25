@@ -317,9 +317,14 @@ export class AuthController {
       const uid = kuProfile.uid;
 
       // 4. ค้นหาในฐานข้อมูลว่ามีบัญชีนี้อยู่แล้วหรือไม่ (Admin / Staff / Executive / Existing Student)
+      const cleanStdId = uid.replace(/^[bg]/i, '');
       let userRes = await db.query(
-        `SELECT * FROM users WHERE username = $1 OR (email = $2 AND email != '')`,
-        [uid, kuProfile.email]
+        `SELECT * FROM users 
+         WHERE LOWER(username) = LOWER($1) 
+            OR LOWER(username) = LOWER($2) 
+            OR student_id = $2 
+            OR (LOWER(email) = LOWER($3) AND email != '')`,
+        [uid, cleanStdId, kuProfile.email]
       );
       let user = userRes.rows[0];
 
@@ -328,7 +333,6 @@ export class AuthController {
         await db.query(`UPDATE users SET updated_at = NOW() WHERE id = $1`, [user.id]);
       } else {
         // ตรวจสอบว่าเป็นนิสิตหรือไม่
-        const cleanStdId = uid.replace(/^[bg]/i, '');
         let studentProfile = null;
         try {
           studentProfile = await CscApiService.getStudentByStudentId(cleanStdId);
@@ -391,10 +395,23 @@ export class AuthController {
         { expiresIn: '12h' }
       );
 
-      // 6. ตอบกลับด้วย HTML สคริปต์เพื่อจัดเก็บ Token ใน LocalStorage และเปลี่ยนหน้าไปยัง Frontend
+      // 6. กำหนดปลายทางตามบทบาท
+      const baseFrontend = config.frontendUrl.replace(/\/$/, '');
+      let targetPath = returnUrl || `${baseFrontend}/`;
+      if (user.role === 'admin') {
+        targetPath = `${baseFrontend}/admin`;
+      } else if (user.role === 'staff') {
+        targetPath = `${baseFrontend}/staff`;
+      } else if (user.role === 'executive') {
+        targetPath = `${baseFrontend}/executive`;
+      } else {
+        targetPath = `${baseFrontend}/`;
+      }
+
+      // 7. ตอบกลับด้วย HTML สคริปต์เพื่อจัดเก็บ Token ใน LocalStorage และเปลี่ยนหน้าไปยัง Frontend
       const safeUserData = JSON.stringify(user);
       const safeToken = JSON.stringify(token);
-      const safeTargetUrl = JSON.stringify(returnUrl);
+      const safeTargetUrl = JSON.stringify(targetPath);
 
       res.send(`
         <!DOCTYPE html>

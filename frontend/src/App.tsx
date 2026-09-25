@@ -180,12 +180,13 @@ export default function App() {
           onClose={() => setIsAuthModalOpen(false)}
           onLoginSuccess={(loggedUser) => {
             setUser(loggedUser);
-            if (loggedUser.role === 'admin' && window.location.pathname !== '/admin') {
-              window.location.href = '/admin';
-            } else if (loggedUser.role === 'staff' && window.location.pathname !== '/staff') {
-              window.location.href = '/staff';
-            } else if (loggedUser.role === 'executive' && window.location.pathname !== '/executive') {
-              window.location.href = '/executive';
+            const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+            if (loggedUser.role === 'admin' && !window.location.pathname.endsWith('/admin')) {
+              window.location.href = `${base}/admin`;
+            } else if (loggedUser.role === 'staff' && !window.location.pathname.endsWith('/staff')) {
+              window.location.href = `${base}/staff`;
+            } else if (loggedUser.role === 'executive' && !window.location.pathname.endsWith('/executive')) {
+              window.location.href = `${base}/executive`;
             }
           }}
         />
