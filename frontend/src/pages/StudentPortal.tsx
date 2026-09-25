@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { User, DocumentType, DocumentPackage, DocumentRequest } from '../types/index.js';
 import { ApiClient } from '../services/api.js';
 import { HeroBanner } from '../components/HeroBanner.js';
-import { PrAnnouncementSection } from '../components/PrAnnouncementSection.js';
 import {
   FileText,
   Package,
@@ -306,9 +305,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
             )}
           </div>
         )}
-
-        {/* Public Relations & Announcements Area */}
-        <PrAnnouncementSection />
 
         {/* Catalog Tabs & Filter Buttons */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-3 mb-6">
