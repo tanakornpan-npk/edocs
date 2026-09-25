@@ -83,7 +83,7 @@ export async function migrateThaiQr() {
 
       ALTER TABLE biller_configs
       ADD COLUMN IF NOT EXISTS use_central_service BOOLEAN DEFAULT FALSE,
-      ADD COLUMN IF NOT EXISTS soap_url VARCHAR(255) DEFAULT 'https://fin.ku.ac.th/qr/service',
+      ADD COLUMN IF NOT EXISTS soap_url VARCHAR(255) DEFAULT 'https://fin.ku.th/qr/service',
       ADD COLUMN IF NOT EXISTS biller_suffix VARCHAR(10) DEFAULT '01',
       ADD COLUMN IF NOT EXISTS app_code VARCHAR(10) DEFAULT '06',
       ADD COLUMN IF NOT EXISTS callback_url VARCHAR(255) DEFAULT 'https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback';

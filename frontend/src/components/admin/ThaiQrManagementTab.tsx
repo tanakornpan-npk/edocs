@@ -91,7 +91,7 @@ export const ThaiQrManagementTab: React.FC = () => {
     merchant_name: 'KASETSART UNIVERSITY CSC',
     service_name_th: 'มหาวิทยาลัยเกษตรศาสตร์ ว.เฉลิมพระเกียรติฯ',
     use_central_service: false,
-    soap_url: 'https://fin.ku.ac.th/qr/service',
+    soap_url: 'https://fin.ku.th/qr/service',
     biller_suffix: '01',
     app_code: '06',
     callback_url: 'https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback',
@@ -155,7 +155,7 @@ export const ThaiQrManagementTab: React.FC = () => {
             merchant_name: activeBiller.merchant_name,
             service_name_th: activeBiller.service_name_th,
             use_central_service: !!activeBiller.use_central_service,
-            soap_url: activeBiller.soap_url || 'https://fin.ku.ac.th/qr/service',
+            soap_url: activeBiller.soap_url || 'https://fin.ku.th/qr/service',
             biller_suffix: activeBiller.biller_suffix || '01',
             app_code: activeBiller.app_code || '06',
             callback_url: activeBiller.callback_url || 'https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback',
@@ -735,11 +735,11 @@ export const ThaiQrManagementTab: React.FC = () => {
                         type="url"
                         value={billerForm.soap_url || ''}
                         onChange={(e) => setBillerForm({ ...billerForm, soap_url: e.target.value })}
-                        placeholder="https://fin.ku.ac.th/qr/service"
+                        placeholder="https://fin.ku.th/qr/service"
                         className="w-full px-3 py-1.5 text-xs font-mono border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#006633]/20 focus:outline-none"
                       />
                       <p className="text-[10px] text-slate-400 mt-0.5">
-                        ระบบผลิตจริง (Production): https://fin.ku.ac.th/qr/service
+                        ระบบผลิตจริง (Production): https://fin.ku.th/qr/service
                       </p>
                     </div>
 

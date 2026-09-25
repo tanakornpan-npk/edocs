@@ -22,6 +22,13 @@ export const config = {
   thaiQr: {
     billerId: process.env.THAI_QR_BILLER_ID || '099400063727601',
   },
+  kuCentralQr: {
+    soapUrl: process.env.KU_QR_SOAP_URL || 'https://fin.ku.th/qr/service',
+    appCode: process.env.KU_QR_APP_CODE || '06',
+    billerSuffix: process.env.KU_QR_BILLER_SUFFIX || '01',
+    enabled: process.env.KU_QR_ENABLE_CENTRAL_SERVICE === 'true',
+    callbackUrl: process.env.KU_QR_CALLBACK_URL || 'https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback',
+  },
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   kuAllLogin: {
     driver: process.env.KU_ALLLOGIN_DRIVER || 'oauth',
