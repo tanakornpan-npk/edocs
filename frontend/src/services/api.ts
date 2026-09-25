@@ -203,6 +203,12 @@ export class ApiClient {
     });
   }
 
+  static async deleteStaff(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/admin/staff/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  }
+
   static async getApplicants() {
     return this.request<{ success: boolean; data: any[]; count: number }>('/admin/applicants');
   }

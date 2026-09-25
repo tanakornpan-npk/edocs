@@ -79,15 +79,15 @@ export class ReportController {
   }
 
   /**
-   * [Admin] จัดการเจ้าหน้าที่บริการเคาน์เตอร์
+   * [Admin] จัดการเจ้าหน้าที่บริการเคาน์เตอร์ และผู้บริหาร
    */
   static async getStaffUsers(req: Request, res: Response): Promise<void> {
     try {
       const result = await db.query(
         `SELECT id, username, email, role, first_name_th, last_name_th, phone_number, created_at
          FROM users
-         WHERE role IN ('staff', 'admin')
-         ORDER BY role ASC, created_at DESC`
+         WHERE role IN ('staff', 'executive', 'admin')
+         ORDER BY CASE role WHEN 'admin' THEN 1 WHEN 'executive' THEN 2 WHEN 'staff' THEN 3 ELSE 4 END, created_at DESC`
       );
       res.json({ success: true, data: result.rows });
     } catch (err: any) {
@@ -96,7 +96,7 @@ export class ReportController {
   }
 
   /**
-   * [Admin] เพิ่มหรือมอบหมายสิทธิ์เจ้าหน้าที่เคาน์เตอร์จากบัญชี KU All-login
+   * [Admin] เพิ่มหรือมอบหมายสิทธิ์เจ้าหน้าที่เคาน์เตอร์ / ผู้บริหารจากบัญชี KU All-login
    */
   static async addStaffUser(req: Request, res: Response): Promise<void> {
     const { username, first_name_th, last_name_th, phone_number, role = 'staff' } = req.body;
@@ -106,27 +106,73 @@ export class ReportController {
       return;
     }
 
+    const validRoles = ['staff', 'executive', 'admin'];
+    const assignedRole = validRoles.includes(role) ? role : 'staff';
+
     try {
+      const defaultName =
+        assignedRole === 'executive'
+          ? 'ผู้บริหาร'
+          : assignedRole === 'admin'
+          ? 'ผู้ดูแลระบบ'
+          : 'เจ้าหน้าที่เคาน์เตอร์';
+
       const insertRes = await db.query(
         `INSERT INTO users (username, email, role, auth_provider, first_name_th, last_name_th, phone_number, is_verified)
          VALUES ($1, $2, $3, 'ku_alllogin', $4, $5, $6, true)
          ON CONFLICT (username) DO UPDATE 
-         SET role = EXCLUDED.role, first_name_th = EXCLUDED.first_name_th, last_name_th = EXCLUDED.last_name_th
+         SET role = EXCLUDED.role, 
+             first_name_th = EXCLUDED.first_name_th, 
+             last_name_th = EXCLUDED.last_name_th,
+             phone_number = EXCLUDED.phone_number
          RETURNING *`,
         [
           username.trim(),
           `${username.trim()}@ku.th`,
-          role,
-          first_name_th || 'เจ้าหน้าที่เคาน์เตอร์',
+          assignedRole,
+          first_name_th || defaultName,
           last_name_th || '',
           phone_number || '',
         ]
       );
 
+      const roleLabels: Record<string, string> = {
+        executive: 'ผู้บริหาร (Executive)',
+        admin: 'ผู้ดูแลระบบ (Admin)',
+        staff: 'เจ้าหน้าที่เคาน์เตอร์ (Staff)',
+      };
+
       res.json({
         success: true,
-        message: `เพิ่ม/ปรับปรุงสิทธิ์เจ้าหน้าที่ '${username}' เรียบร้อย`,
+        message: `เพิ่ม/ปรับปรุงสิทธิ์ '${username}' เป็น ${roleLabels[assignedRole]} เรียบร้อย`,
         data: insertRes.rows[0],
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  /**
+   * [Admin] ลบ/ยกเลิกสิทธิ์เจ้าหน้าที่หรือผู้บริหาร
+   */
+  static async deleteStaffUser(req: Request, res: Response): Promise<void> {
+    const { id } = req.params;
+    try {
+      const checkRes = await db.query(`SELECT * FROM users WHERE id = $1`, [id]);
+      if (checkRes.rows.length === 0) {
+        res.status(404).json({ success: false, message: 'ไม่พบผู้ใช้งานที่ระบุ' });
+        return;
+      }
+      const targetUser = checkRes.rows[0];
+      if ((req as any).user && (req as any).user.id === targetUser.id) {
+        res.status(400).json({ success: false, message: 'ไม่อนุญาตให้ลบบัญชีของตนเองที่กำลังเข้าสู่ระบบอยู่' });
+        return;
+      }
+
+      await db.query(`DELETE FROM users WHERE id = $1`, [id]);
+      res.json({
+        success: true,
+        message: `ยกเลิกสิทธิ์ผู้ใช้งาน '${targetUser.username}' (${targetUser.role}) เรียบร้อย`,
       });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });

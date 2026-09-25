@@ -15,6 +15,8 @@ import {
   Package,
   Upload,
   UserPlus,
+  Trash2,
+  UserCheck,
   Plus,
   Edit2,
   FileSpreadsheet,
@@ -107,11 +109,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
   const [whitelistMembers, setWhitelistMembers] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Add Staff Form
+  // Add Staff / Executive Form
   const [staffUsername, setStaffUsername] = useState('');
   const [staffName, setStaffName] = useState('');
   const [staffPhone, setStaffPhone] = useState('');
-  const [staffRole, setStaffRole] = useState<'staff' | 'admin'>('staff');
+  const [staffRole, setStaffRole] = useState<'staff' | 'executive' | 'admin'>('staff');
+  const [staffRoleFilter, setStaffRoleFilter] = useState<'all' | 'staff' | 'executive' | 'admin'>('all');
 
   useEffect(() => {
     loadAllData();
@@ -252,10 +255,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!staffUsername.trim()) return;
+    const defaultTitle =
+      staffRole === 'executive'
+        ? 'ผู้บริหาร'
+        : staffRole === 'admin'
+        ? 'ผู้ดูแลระบบ'
+        : 'เจ้าหน้าที่เคาน์เตอร์';
+
     try {
-      await ApiClient.addStaff({
+      const res = await ApiClient.addStaff({
         username: staffUsername.trim(),
-        first_name_th: staffName.trim() || 'เจ้าหน้าที่เคาน์เตอร์',
+        first_name_th: staffName.trim() || defaultTitle,
         phone_number: staffPhone.trim() || '',
         role: staffRole,
       });
@@ -263,9 +273,30 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
       setStaffName('');
       setStaffPhone('');
       loadAllData();
-      alert('บันทึกและมอบหมายสิทธิ์เจ้าหน้าที่สำเร็จ');
+      alert(res.message || 'บันทึกและมอบหมายสิทธิ์สำเร็จ');
     } catch (err: any) {
-      alert('เพิ่มเจ้าหน้าที่ไม่สำเร็จ: ' + err.message);
+      alert('เพิ่ม/มอบหมายสิทธิ์ไม่สำเร็จ: ' + err.message);
+    }
+  };
+
+  const handleDeleteStaff = async (id: string, username: string, role: string) => {
+    const roleName =
+      role === 'executive'
+        ? 'ผู้บริหาร (Executive)'
+        : role === 'admin'
+        ? 'ผู้ดูแลระบบ (Admin)'
+        : 'เจ้าหน้าที่เคาน์เตอร์ (Staff)';
+
+    if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการยกเลิกสิทธิ์ของ '${username}' (${roleName})?`)) {
+      return;
+    }
+
+    try {
+      const res = await ApiClient.deleteStaff(id);
+      loadAllData();
+      alert(res.message || 'ยกเลิกสิทธิ์เรียบร้อย');
+    } catch (err: any) {
+      alert('ไม่สามารถยกเลิกสิทธิ์ได้: ' + err.message);
     }
   };
 
@@ -317,6 +348,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
     const matchDelivery = orderDeliveryFilter === 'all' || order.delivery_method === orderDeliveryFilter;
 
     return matchQuery && matchStatus && matchStudentType && matchDelivery;
+  });
+
+  // Filtered staff & executive users
+  const filteredStaff = staffList.filter((s) => {
+    if (staffRoleFilter === 'all') return true;
+    return s.role === staffRoleFilter;
   });
 
   const handleExportOrdersCsv = () => {
@@ -460,7 +497,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
             }`}
           >
             <Users className="w-4 h-4 shrink-0" />
-            <span className="truncate">เจ้าหน้าที่ ({staffList.length})</span>
+            <span className="truncate">เจ้าหน้าที่ & ผู้บริหาร ({staffList.length})</span>
           </button>
         </div>
       </div>
@@ -1547,17 +1584,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
         </div>
       )}
 
-      {/* SUBTAB 5: Staff Management */}
+      {/* SUBTAB 5: Staff & Executive Management */}
       {activeSubTab === 'staff' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Add Staff Card */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Add Staff / Executive Card */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 h-max">
             <h3 className="font-bold text-sm text-slate-800 mb-1 flex items-center space-x-1.5">
               <UserPlus className="w-4 h-4 text-[#006633]" />
-              <span>เพิ่มเจ้าหน้าที่บริการหน้าเคาน์เตอร์</span>
+              <span>เพิ่มเจ้าหน้าที่เคาน์เตอร์ / ผู้บริหารระบบ</span>
             </h3>
             <p className="text-xs text-slate-500 mb-4">
-              ผูกบัญชี KU All-login เพื่อมอบสิทธิ์เข้าใช้งานพอร์ทัลเคาน์เตอร์ POS
+              ผูกบัญชี KU All-login เพื่อมอบสิทธิ์เข้าใช้งานระบบ (เจ้าหน้าที่เคาน์เตอร์ POS, ผู้บริหาร Executive หรือผู้ดูแลระบบ Admin)
             </p>
 
             <form onSubmit={handleAddStaff} className="space-y-3">
@@ -1567,24 +1604,30 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
                 </label>
                 <input
                   type="text"
-                  placeholder="เช่น staff.counter หรือ bxxxxxxxxxx"
+                  placeholder="เช่น exec.dean หรือ staff.counter"
                   value={staffUsername}
                   onChange={(e) => setStaffUsername(e.target.value)}
-                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#006633]"
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ชื่อ-นามสกุล เจ้าหน้าที่
+                  ชื่อ-นามสกุล / ตำแหน่ง
                 </label>
                 <input
                   type="text"
-                  placeholder="เช่น สมศรี บริการดีเลิศ"
+                  placeholder={
+                    staffRole === 'executive'
+                      ? 'เช่น รศ.ดร. นนทรี ผู้บริหาร มก.ฉกส.'
+                      : staffRole === 'admin'
+                      ? 'เช่น ผู้ดูแลระบบ ทะเบียนและประมวลผล'
+                      : 'เช่น สมศรี บริการดีเลิศ'
+                  }
                   value={staffName}
                   onChange={(e) => setStaffName(e.target.value)}
-                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#006633]"
                 />
               </div>
 
@@ -1597,75 +1640,162 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onViewReceipt }) => {
                   placeholder="เช่น 042-725000 หรือ 081-xxxxxxx"
                   value={staffPhone}
                   onChange={(e) => setStaffPhone(e.target.value)}
-                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#006633]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">ระดับสิทธิ์</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  ระดับสิทธิ์การใช้งาน <span className="text-red-500">*</span>
+                </label>
                 <select
                   value={staffRole}
                   onChange={(e) => setStaffRole(e.target.value as any)}
-                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#006633] font-semibold text-slate-800"
                 >
-                  <option value="staff">เจ้าหน้าที่บริการเคาน์เตอร์ (Staff POS)</option>
-                  <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+                  <option value="staff">🏢 เจ้าหน้าที่บริการเคาน์เตอร์ (Staff POS)</option>
+                  <option value="executive">📊 ผู้บริหาร (Executive - ดูแดชบอร์ดสถิติ & รายงาน)</option>
+                  <option value="admin">🛡️ ผู้ดูแลระบบ (Admin Console)</option>
                 </select>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {staffRole === 'executive' && '💡 สิทธิ์ผู้บริหาร: ดูแดชบอร์ด KPI, ยอดคำร้อง, วิเคราะห์สัดส่วน และดาวน์โหลดรายงานสรุป'}
+                  {staffRole === 'staff' && '💡 สิทธิ์เจ้าหน้าที่: เปิดคำร้อง Walk-in หน้าร้าน, อัปเดตสถานะเอกสาร และพิมพ์ใบเสร็จ'}
+                  {staffRole === 'admin' && '💡 สิทธิ์ Admin: จัดการแคตตาล็อกเอกสาร, กำหนดราคา, แพ็กเกจ, Whitelist และผู้ใช้งานทั้งหมด'}
+                </p>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-[#006633] hover:bg-[#004d26] text-white font-bold text-xs rounded-xl shadow transition mt-2"
+                className="w-full py-2.5 bg-[#006633] hover:bg-[#004d26] text-white font-bold text-xs rounded-xl shadow transition mt-3 flex items-center justify-center space-x-1.5"
               >
-                บันทึกและมอบสิทธิ์
+                <UserCheck className="w-4 h-4 text-[#FFC72C]" />
+                <span>บันทึกและมอบสิทธิ์</span>
               </button>
             </form>
           </div>
 
-          {/* Staff List Table */}
-          <div className="md:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-            <h3 className="font-bold text-sm text-slate-800 mb-3 flex items-center space-x-1.5">
-              <Users className="w-4 h-4 text-slate-700" />
-              <span>รายชื่อเจ้าหน้าที่และผู้ดูแลระบบทั้งหมด ({staffList.length} คน)</span>
-            </h3>
+          {/* Staff & Executive List Table */}
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 className="font-bold text-sm text-slate-800 flex items-center space-x-1.5">
+                  <Users className="w-4 h-4 text-[#006633]" />
+                  <span>รายชื่อเจ้าหน้าที่และผู้บริหาร ({filteredStaff.length} คน)</span>
+                </h3>
+                <p className="text-xs text-slate-500">บัญชีที่ได้รับสิทธิ์เข้าถึงส่วนงานเจ้าหน้าที่ ผู้บริหาร และผู้ดูแลระบบ</p>
+              </div>
+
+              {/* Role Filter Tabs */}
+              <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl shrink-0 overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setStaffRoleFilter('all')}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
+                    staffRoleFilter === 'all'
+                      ? 'bg-white text-slate-800 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  ทั้งหมด ({staffList.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStaffRoleFilter('staff')}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
+                    staffRoleFilter === 'staff'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  เจ้าหน้าที่ ({staffList.filter((s) => s.role === 'staff').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStaffRoleFilter('executive')}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
+                    staffRoleFilter === 'executive'
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  ผู้บริหาร ({staffList.filter((s) => s.role === 'executive').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStaffRoleFilter('admin')}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
+                    staffRoleFilter === 'admin'
+                      ? 'bg-red-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Admin ({staffList.filter((s) => s.role === 'admin').length})
+                </button>
+              </div>
+            </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
                 <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
                   <tr>
                     <th className="py-2.5 px-3">บัญชี KU All-login</th>
-                    <th className="py-2.5 px-3">ชื่อ-นามสกุล</th>
-                    <th className="py-2.5 px-3">บทบาท</th>
+                    <th className="py-2.5 px-3">ชื่อ-นามสกุล / ตำแหน่ง</th>
+                    <th className="py-2.5 px-3">ระดับสิทธิ์</th>
                     <th className="py-2.5 px-3">เบอร์ติดต่อ</th>
-                    <th className="py-2.5 px-3">สถานะ</th>
+                    <th className="py-2.5 px-3 text-center">จัดการ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {staffList.map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-50 transition">
-                      <td className="py-3 px-3 font-mono font-bold text-slate-800">{s.username}</td>
-                      <td className="py-3 px-3 font-semibold text-slate-700">
-                        {s.first_name_th} {s.last_name_th}
-                      </td>
-                      <td className="py-3 px-3">
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            s.role === 'admin'
-                              ? 'bg-red-100 text-red-800 border border-red-200'
-                              : 'bg-amber-100 text-amber-800 border border-amber-200'
-                          }`}
-                        >
-                          {s.role === 'admin' ? 'Admin ผู้ดูแลระบบ' : 'Staff เคาน์เตอร์'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-slate-500 font-mono">{s.phone_number || '-'}</td>
-                      <td className="py-3 px-3">
-                        <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">
-                          ใช้งานได้ปกติ
-                        </span>
+                  {filteredStaff.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-400">
+                        ไม่พบบัญชีผู้ใช้งานในหมวดหมู่นี้
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredStaff.map((s) => (
+                      <tr key={s.id} className="hover:bg-slate-50 transition">
+                        <td className="py-3 px-3 font-mono font-bold text-slate-800">
+                          {s.username}
+                        </td>
+                        <td className="py-3 px-3 font-semibold text-slate-700">
+                          {s.first_name_th} {s.last_name_th}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center space-x-1 ${
+                              s.role === 'admin'
+                                ? 'bg-red-100 text-red-800 border border-red-200'
+                                : s.role === 'executive'
+                                ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                : 'bg-amber-100 text-amber-800 border border-amber-200'
+                            }`}
+                          >
+                            <span>
+                              {s.role === 'admin'
+                                ? '🛡️ Admin ผู้ดูแลระบบ'
+                                : s.role === 'executive'
+                                ? '📊 Executive ผู้บริหาร'
+                                : '🏢 Staff เคาน์เตอร์'}
+                            </span>
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-slate-500 font-mono">
+                          {s.phone_number || '-'}
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteStaff(s.id, s.username, s.role)}
+                            title="ยกเลิกสิทธิ์ผู้ใช้งาน"
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

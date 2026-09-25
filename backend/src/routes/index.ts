@@ -50,6 +50,7 @@ router.post('/admin/packages/:id/upload-whitelist', authenticate, requireRoles([
 router.get('/admin/packages/:id/whitelist', authenticate, requireRoles(['admin']), DocumentController.getPackageWhitelist);
 router.get('/admin/staff', authenticate, requireRoles(['admin']), ReportController.getStaffUsers);
 router.post('/admin/staff', authenticate, requireRoles(['admin']), ReportController.addStaffUser);
+router.delete('/admin/staff/:id', authenticate, requireRoles(['admin']), ReportController.deleteStaffUser);
 router.get('/admin/applicants', authenticate, requireRoles(['admin']), ReportController.getApplicants);
 
 // --- 8. Executive & Admin Analytics ---
