@@ -76,8 +76,19 @@ export async function migrateThaiQr() {
       ALTER TABLE payments ADD COLUMN IF NOT EXISTS biller_id VARCHAR(50);
       ALTER TABLE payments ADD COLUMN IF NOT EXISTS ref1 VARCHAR(50);
       ALTER TABLE payments ADD COLUMN IF NOT EXISTS ref2 VARCHAR(50);
+      ALTER TABLE payments ADD COLUMN IF NOT EXISTS qr_id VARCHAR(50);
+      ALTER TABLE payments ADD COLUMN IF NOT EXISTS bank_transaction_id VARCHAR(100);
+      ALTER TABLE payments ADD COLUMN IF NOT EXISTS bank_confirmed_at TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE payments ADD COLUMN IF NOT EXISTS bank_notification JSONB;
+
+      ALTER TABLE biller_configs
+      ADD COLUMN IF NOT EXISTS use_central_service BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS soap_url VARCHAR(255) DEFAULT 'https://fin.ku.ac.th/qr/service',
+      ADD COLUMN IF NOT EXISTS biller_suffix VARCHAR(10) DEFAULT '01',
+      ADD COLUMN IF NOT EXISTS app_code VARCHAR(10) DEFAULT '06',
+      ADD COLUMN IF NOT EXISTS callback_url VARCHAR(255) DEFAULT 'https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback';
     `);
-    console.log('✅ Altered existing tables (ref2_code in docs/pkgs, biller_id/ref1/ref2 in payments)');
+    console.log('✅ Altered existing tables (ref2_code in docs/pkgs, biller_id/ref1/ref2 in payments, central QR columns)');
 
     // 7. Seed/Update Active Biller Config
     await client.query(`UPDATE biller_configs SET is_active = false;`);
@@ -103,8 +114,11 @@ export async function migrateThaiQr() {
       await client.query(`
         INSERT INTO payment_categories (code, name)
         VALUES ($1, $2)
-        ON CONFLICT (code) DO NOTHING;
-      `, [cat.code, cat.name]);
+        ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name;
+      `, [cat.code, cat.name]).catch(async () => {
+        // Fallback if name has unique conflict
+        await client.query(`UPDATE payment_categories SET code = $1 WHERE name = $2`, [cat.code, cat.name]);
+      });
     }
     console.log('✅ Seeded payment categories');
 
@@ -119,7 +133,7 @@ export async function migrateThaiQr() {
       await client.query(`
         INSERT INTO payment_types (code, name, description)
         VALUES ($1, $2, $3)
-        ON CONFLICT (code) DO NOTHING;
+        ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description;
       `, [t.code, t.name, t.description]);
     }
     console.log('✅ Seeded payment types');
@@ -133,7 +147,7 @@ export async function migrateThaiQr() {
       await client.query(`
         INSERT INTO credit_limits (code, name)
         VALUES ($1, $2)
-        ON CONFLICT (code) DO NOTHING;
+        ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name;
       `, [l.code, l.name]);
     }
     console.log('✅ Seeded credit limits');

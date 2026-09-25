@@ -37,6 +37,7 @@ router.get('/requests/:orderNo', authenticate, RequestController.getRequestDetai
 
 // --- 5. Payments & Receipts ---
 router.post('/payment/confirm', PaymentController.confirmPayment);
+router.post('/payment/ku-qr-callback', PaymentController.handleKuQrCallback);
 router.get('/payment/receipt/:orderNo', PaymentController.getReceipt);
 
 // --- 6. Counter Staff POS & Queue ---
@@ -84,5 +85,6 @@ router.post('/admin/thaiqr/ref2', authenticate, requireRoles(['admin']), ThaiQrC
 router.delete('/admin/thaiqr/ref2/:id', authenticate, requireRoles(['admin']), ThaiQrConfigController.deleteRef2Config);
 router.post('/admin/thaiqr/ref2/seed-default', authenticate, requireRoles(['admin']), ThaiQrConfigController.seedDefaults);
 router.post('/admin/thaiqr/test-qr', authenticate, requireRoles(['admin']), ThaiQrConfigController.testGenerateQr);
+router.post('/admin/thaiqr/test-ku-soap', authenticate, requireRoles(['admin']), ThaiQrConfigController.testKuCentralSoap);
 
 export default router;

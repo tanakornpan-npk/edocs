@@ -343,4 +343,19 @@ export class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  static async testKuCentralSoap(data: {
+    soap_url?: string;
+    app_code?: string;
+    biller_suffix?: string;
+    callback_url?: string;
+    amount?: number;
+    student_id?: string;
+    ref2_code?: string;
+  }) {
+    return this.request<{ success: boolean; data: any; message?: string }>('/admin/thaiqr/test-ku-soap', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }

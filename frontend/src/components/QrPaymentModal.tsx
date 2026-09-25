@@ -87,7 +87,30 @@ export const QrPaymentModal: React.FC<QrPaymentModalProps> = ({
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
-    return () => clearInterval(timer);
+    // Auto-poll status in case Central KU QR service / bank Webhook confirms payment
+    const pollInterval = setInterval(() => {
+      if (orderNo) {
+        ApiClient.getRequestDetail(orderNo)
+          .then((res: any) => {
+            const req = res.data;
+            if (
+              req?.status === 'processing' ||
+              req?.status === 'paid' ||
+              req?.status === 'completed' ||
+              req?.payment?.status === 'success'
+            ) {
+              setIsSuccess(true);
+              onPaymentSuccess(orderNo);
+            }
+          })
+          .catch(() => {});
+      }
+    }, 4000);
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(pollInterval);
+    };
   }, [isOpen, orderNo, initialQrDataUrl, amount, initialBillerId, initialRef1, initialRef2]);
 
   if (!isOpen) return null;

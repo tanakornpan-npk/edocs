@@ -141,18 +141,33 @@ export class RequestController {
         console.warn('Cannot resolve custom REF2, falling back to 300:', err.message);
       }
 
-      // สร้าง Thai QR Cross-Bank Bill Payment (Tag 30)
+      // สร้าง Thai QR Cross-Bank Bill Payment (รองรับทั้ง Central KU Service และ Standalone Tag 30)
       const qrData = await ThaiQrBillPaymentService.generateBillPaymentQr({
         amount: total_amount,
         ref1: student_id || order_no,
         ref2: resolvedRef2,
+        transactionId: order_no,
       });
 
       // บันทึกธุรกรรมการชำระเงิน
       await db.query(
-        `INSERT INTO payments (request_id, order_no, amount, payment_method, qr_payload, qr_expired_at, biller_id, ref1, ref2, status)
-         VALUES ($1, $2, $3, 'thai_qr', $4, $5, $6, $7, $8, 'pending')`,
-        [requestRecord.id, order_no, total_amount, qrData.payload, qrData.expiredAt, qrData.billerId, qrData.ref1, qrData.ref2]
+        `INSERT INTO payments (
+           request_id, order_no, amount, payment_method, qr_payload, qr_expired_at,
+           biller_id, ref1, ref2, qr_id, status
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending')`,
+        [
+          requestRecord.id,
+          order_no,
+          total_amount,
+          qrData.isCentralService ? 'ku_central_qr' : 'thai_qr',
+          qrData.isCentralService ? qrData.qrDataUrl : qrData.payload,
+          qrData.expiredAt,
+          qrData.billerId,
+          qrData.ref1,
+          qrData.ref2,
+          qrData.qrId || null,
+        ]
       );
 
       // บันทึก Activity Log
@@ -256,13 +271,17 @@ export class RequestController {
       let payment = payRes.rows[0] || null;
       if (payment && payment.qr_payload) {
         try {
-          const qrDataUrl = await QRCode.toDataURL(payment.qr_payload, {
-            errorCorrectionLevel: 'M',
-            margin: 2,
-            width: 340,
-            color: { dark: '#004d26', light: '#ffffff' },
-          });
-          payment = { ...payment, qr_data_url: qrDataUrl };
+          if (payment.qr_payload.startsWith('data:image/') || payment.payment_method === 'ku_central_qr') {
+            payment = { ...payment, qr_data_url: payment.qr_payload };
+          } else {
+            const qrDataUrl = await QRCode.toDataURL(payment.qr_payload, {
+              errorCorrectionLevel: 'M',
+              margin: 2,
+              width: 340,
+              color: { dark: '#004d26', light: '#ffffff' },
+            });
+            payment = { ...payment, qr_data_url: qrDataUrl };
+          }
         } catch (_) {}
       }
 

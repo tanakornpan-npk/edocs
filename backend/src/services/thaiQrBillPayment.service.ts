@@ -1,6 +1,7 @@
 import QRCode from 'qrcode';
 import { db } from '../database/db.js';
 import { config } from '../config/index.js';
+import { KuCentralQrService } from './kuCentralQr.service.js';
 
 export interface ThaiQrBillPaymentOptions {
   amount: number;
@@ -8,6 +9,7 @@ export interface ThaiQrBillPaymentOptions {
   ref2?: string; // REF2 code, e.g. '300'
   billerId?: string; // 13 - 15 digits
   merchantName?: string; // Max 25 chars
+  transactionId?: string; // Unique transaction/order ID
 }
 
 export interface ThaiQrBillPaymentResult {
@@ -21,6 +23,8 @@ export interface ThaiQrBillPaymentResult {
   amount: number;
   amountThaiText: string;
   expiredAt: Date;
+  isCentralService?: boolean;
+  qrId?: string;
 }
 
 export class ThaiQrBillPaymentService {
@@ -57,16 +61,28 @@ export class ThaiQrBillPaymentService {
     billerId: string;
     merchantName: string;
     serviceNameTh: string;
+    useCentralService?: boolean;
+    soapUrl?: string;
+    billerSuffix?: string;
+    appCode?: string;
+    callbackUrl?: string;
   }> {
     try {
       const res = await db.query(
-        'SELECT biller_id, merchant_name, service_name_th FROM biller_configs WHERE is_active = true ORDER BY created_at DESC LIMIT 1'
+        `SELECT biller_id, merchant_name, service_name_th, use_central_service, soap_url, biller_suffix, app_code, callback_url
+         FROM biller_configs WHERE is_active = true ORDER BY created_at DESC LIMIT 1`
       );
       if (res.rows.length > 0) {
+        const row = res.rows[0];
         return {
-          billerId: res.rows[0].biller_id,
-          merchantName: res.rows[0].merchant_name,
-          serviceNameTh: res.rows[0].service_name_th,
+          billerId: row.biller_id,
+          merchantName: row.merchant_name,
+          serviceNameTh: row.service_name_th,
+          useCentralService: !!row.use_central_service,
+          soapUrl: row.soap_url || process.env.KU_QR_SOAP_URL || 'https://fin.ku.ac.th/qr/service',
+          billerSuffix: row.biller_suffix || process.env.KU_QR_BILLER_SUFFIX || '01',
+          appCode: row.app_code || process.env.KU_QR_APP_CODE || '06',
+          callbackUrl: row.callback_url || process.env.KU_QR_CALLBACK_URL || 'https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback',
         };
       }
     } catch (err: any) {
@@ -77,6 +93,11 @@ export class ThaiQrBillPaymentService {
       billerId: config.thaiQr.billerId || '099400063727601',
       merchantName: 'KASETSART UNIVERSITY CSC',
       serviceNameTh: 'มหาวิทยาลัยเกษตรศาสตร์ ว.เฉลิมพระเกียรติฯ',
+      useCentralService: false,
+      soapUrl: process.env.KU_QR_SOAP_URL || 'https://fin.ku.ac.th/qr/service',
+      billerSuffix: process.env.KU_QR_BILLER_SUFFIX || '01',
+      appCode: process.env.KU_QR_APP_CODE || '06',
+      callbackUrl: process.env.KU_QR_CALLBACK_URL || 'https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback',
     };
   }
 
@@ -152,6 +173,46 @@ export class ThaiQrBillPaymentService {
     // 15-minute expiration window
     const expiredAt = new Date(Date.now() + 15 * 60 * 1000);
 
+    // If Central KU Service is active, try calling it first!
+    if (billerConfig.useCentralService) {
+      try {
+        console.log(`[ThaiQR] Attempting KU Central QR Service (appCode=${billerConfig.appCode}, ref2=${ref2})...`);
+        const centralRes = await KuCentralQrService.requestOeaQr({
+          amount: options.amount,
+          transactionId: options.transactionId || options.ref1,
+          studentId: options.ref1,
+          ref2Code: ref2,
+          appCode: billerConfig.appCode,
+          billerSuffix: billerConfig.billerSuffix,
+          soapUrl: billerConfig.soapUrl,
+          callbackUrl: billerConfig.callbackUrl,
+          timeoutMs: 5000,
+        });
+
+        if (centralRes.success && centralRes.qrDataUrl) {
+          console.log(`[ThaiQR] ✅ Successfully generated QR from KU Central Service (qrId: ${centralRes.qrId})`);
+          return {
+            payload: centralRes.rawXmlResponse || '',
+            qrDataUrl: centralRes.qrDataUrl,
+            billerId,
+            merchantName,
+            serviceNameTh: billerConfig.serviceNameTh,
+            ref1: centralRes.ref1Prefix || options.ref1,
+            ref2: centralRes.ref2Prefix || ref2,
+            amount: options.amount,
+            amountThaiText: this.thaiBahtText(options.amount),
+            expiredAt,
+            isCentralService: true,
+            qrId: centralRes.qrId,
+          };
+        } else {
+          console.warn(`[ThaiQR] KU Central Service returned failure: ${centralRes.error}. Falling back to Standalone EMVCo Tag 30.`);
+        }
+      } catch (centralErr: any) {
+        console.warn(`[ThaiQR] KU Central Service exception: ${centralErr.message}. Falling back to Standalone EMVCo Tag 30.`);
+      }
+    }
+
     const payload = this.generateTag30Payload({
       billerId,
       ref1: options.ref1,
@@ -182,6 +243,7 @@ export class ThaiQrBillPaymentService {
       amount: options.amount,
       amountThaiText: this.thaiBahtText(options.amount),
       expiredAt,
+      isCentralService: false,
     };
   }
 

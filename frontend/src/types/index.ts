@@ -134,6 +134,11 @@ export interface BillerConfig {
   merchant_name: string;
   service_name_th: string;
   is_active: boolean;
+  use_central_service?: boolean;
+  soap_url?: string;
+  biller_suffix?: string;
+  app_code?: string;
+  callback_url?: string;
   created_at?: string;
   updated_at?: string;
 }

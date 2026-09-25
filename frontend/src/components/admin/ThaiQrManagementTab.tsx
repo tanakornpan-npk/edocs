@@ -26,6 +26,12 @@ import {
   X,
   Play,
   FileSpreadsheet,
+  Globe,
+  Server,
+  Send,
+  Terminal,
+  ExternalLink,
+  ShieldCheck,
 } from 'lucide-react';
 
 export const ThaiQrManagementTab: React.FC = () => {
@@ -75,11 +81,26 @@ export const ThaiQrManagementTab: React.FC = () => {
     biller_id: string;
     merchant_name: string;
     service_name_th: string;
+    use_central_service?: boolean;
+    soap_url?: string;
+    biller_suffix?: string;
+    app_code?: string;
+    callback_url?: string;
   }>({
     biller_id: '099400063727601',
     merchant_name: 'KASETSART UNIVERSITY CSC',
     service_name_th: 'มหาวิทยาลัยเกษตรศาสตร์ ว.เฉลิมพระเกียรติฯ',
+    use_central_service: false,
+    soap_url: 'https://fin.ku.ac.th/qr/service',
+    biller_suffix: '01',
+    app_code: '06',
+    callback_url: 'https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback',
   });
+
+  // Central SOAP Testing State
+  const [isTestingSoap, setIsTestingSoap] = useState(false);
+  const [soapTestResult, setSoapTestResult] = useState<any>(null);
+  const [showSoapDetails, setShowSoapDetails] = useState(false);
 
   // Type Modal
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
@@ -133,6 +154,11 @@ export const ThaiQrManagementTab: React.FC = () => {
             biller_id: activeBiller.biller_id,
             merchant_name: activeBiller.merchant_name,
             service_name_th: activeBiller.service_name_th,
+            use_central_service: !!activeBiller.use_central_service,
+            soap_url: activeBiller.soap_url || 'https://fin.ku.ac.th/qr/service',
+            biller_suffix: activeBiller.biller_suffix || '01',
+            app_code: activeBiller.app_code || '06',
+            callback_url: activeBiller.callback_url || 'https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback',
           });
         }
       }
@@ -166,11 +192,43 @@ export const ThaiQrManagementTab: React.FC = () => {
         merchant_name: billerForm.merchant_name,
         service_name_th: billerForm.service_name_th,
         is_active: true,
+        use_central_service: billerForm.use_central_service,
+        soap_url: billerForm.soap_url,
+        biller_suffix: billerForm.biller_suffix,
+        app_code: billerForm.app_code,
+        callback_url: billerForm.callback_url,
       });
       showNotification('บันทึกข้อมูล Biller ID สำเร็จ');
       loadAllData();
     } catch (err: any) {
       alert('บันทึกไม่สำเร็จ: ' + err.message);
+    }
+  };
+
+  const handleTestSoapConnection = async () => {
+    setIsTestingSoap(true);
+    setSoapTestResult(null);
+    try {
+      const res = await ApiClient.testKuCentralSoap({
+        soap_url: billerForm.soap_url,
+        app_code: billerForm.app_code,
+        biller_suffix: billerForm.biller_suffix,
+        callback_url: billerForm.callback_url,
+        amount: 1.0,
+        student_id: '6540201234',
+        ref2_code: '300',
+      });
+      setSoapTestResult(res.data);
+      if (res.data?.success) {
+        showNotification('เชื่อมต่อระบบกลาง มก. สำเร็จ!');
+      }
+    } catch (err: any) {
+      setSoapTestResult({
+        success: false,
+        error: err.message,
+      });
+    } finally {
+      setIsTestingSoap(false);
     }
   };
 
@@ -642,6 +700,185 @@ export const ThaiQrManagementTab: React.FC = () => {
                 />
               </div>
 
+              {/* KU Central QR Service Integration */}
+              <div className="pt-4 border-t border-slate-200">
+                <div className="flex items-center justify-between mb-3 bg-emerald-50/70 p-3.5 rounded-xl border border-emerald-100">
+                  <div className="flex items-start space-x-2.5">
+                    <Server className="w-5 h-5 text-[#006633] mt-0.5" />
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800">
+                        เชื่อมต่อระบบสร้าง QR ส่วนกลาง มก. (KU Central QR Web Service)
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        เชื่อมต่อไปยังระบบ สบศ./กองคลัง มก. เพื่อคำนวณ SCB Check Digit และรับผลชำระเงินอัตโนมัติ (Webhook)
+                      </p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={billerForm.use_central_service || false}
+                      onChange={(e) => setBillerForm({ ...billerForm, use_central_service: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#006633]"></div>
+                  </label>
+                </div>
+
+                {billerForm.use_central_service && (
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 mb-4 animate-in fade-in duration-200">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        SOAP Web Service Endpoint URL
+                      </label>
+                      <input
+                        type="url"
+                        value={billerForm.soap_url || ''}
+                        onChange={(e) => setBillerForm({ ...billerForm, soap_url: e.target.value })}
+                        placeholder="https://fin.ku.ac.th/qr/service"
+                        className="w-full px-3 py-1.5 text-xs font-mono border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#006633]/20 focus:outline-none"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        ระบบผลิตจริง (Production): https://fin.ku.ac.th/qr/service
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          App Code (รหัสระบบ)
+                        </label>
+                        <input
+                          type="text"
+                          value={billerForm.app_code || ''}
+                          onChange={(e) => setBillerForm({ ...billerForm, app_code: e.target.value })}
+                          placeholder="06"
+                          className="w-full px-3 py-1.5 text-xs font-mono border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#006633]/20 focus:outline-none"
+                        />
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          06: ค่าเอกสารสำคัญทางการศึกษา
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Biller Suffix (2 หลักท้าย)
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={2}
+                          value={billerForm.biller_suffix || ''}
+                          onChange={(e) => setBillerForm({ ...billerForm, biller_suffix: e.target.value })}
+                          placeholder="01"
+                          className="w-full px-3 py-1.5 text-xs font-mono border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#006633]/20 focus:outline-none"
+                        />
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          เช่น 01 หรือรหัสเฉพาะของ วข.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Callback Webhook URL (สำหรับรับผลการชำระเงินจากระบบกลาง)
+                      </label>
+                      <input
+                        type="url"
+                        value={billerForm.callback_url || ''}
+                        onChange={(e) => setBillerForm({ ...billerForm, callback_url: e.target.value })}
+                        placeholder="https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback"
+                        className="w-full px-3 py-1.5 text-xs font-mono border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#006633]/20 focus:outline-none"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        ระบบจะตัดชำระเงินอัตโนมัติเมื่อธนาคารยิง Callback มาที่ URL นี้
+                      </p>
+                    </div>
+
+                    {/* Test Button & Results */}
+                    <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={handleTestSoapConnection}
+                        disabled={isTestingSoap}
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+                      >
+                        {isTestingSoap ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>กำลังทดสอบเชื่อมต่อ...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-3.5 h-3.5" />
+                            <span>ทดสอบยิงคำขอ SOAP ไปยังระบบกลาง</span>
+                          </>
+                        )}
+                      </button>
+
+                      {soapTestResult && (
+                        <button
+                          type="button"
+                          onClick={() => setShowSoapDetails(!showSoapDetails)}
+                          className="text-xs text-slate-600 hover:text-slate-800 font-semibold underline flex items-center space-x-1"
+                        >
+                          <Terminal className="w-3.5 h-3.5" />
+                          <span>{showSoapDetails ? 'ซ่อนรายละเอียด XML' : 'ดูรายละเอียด XML / Response'}</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Test Result Display */}
+                    {soapTestResult && (
+                      <div className={`p-3 rounded-xl border text-xs ${soapTestResult.success ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                        <div className="flex items-center space-x-2 font-bold mb-1">
+                          {soapTestResult.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-amber-600" />}
+                          <span>{soapTestResult.success ? 'เชื่อมต่อและสร้าง QR จากระบบกลาง มก. สำเร็จ!' : 'การเชื่อมต่อระบบกลางไม่สำเร็จ'}</span>
+                          {soapTestResult.durationMs && <span className="text-[10px] font-mono text-slate-400">({soapTestResult.durationMs}ms)</span>}
+                        </div>
+                        {soapTestResult.error && (
+                          <p className="text-[11px] text-amber-700 font-mono mt-1 bg-white/60 p-2 rounded">
+                            {soapTestResult.error}
+                          </p>
+                        )}
+
+                        {soapTestResult.qrDataUrl && (
+                          <div className="mt-3 flex items-center space-x-4 bg-white p-3 rounded-lg border border-emerald-200">
+                            <img src={soapTestResult.qrDataUrl} alt="SOAP Test QR" className="w-24 h-24 rounded border border-slate-200" />
+                            <div>
+                              <div className="font-bold text-slate-800">QR ID: {soapTestResult.qrId || '-'}</div>
+                              <div className="text-[11px] text-slate-500">App ID: {soapTestResult.appId || '-'} | App Code: {soapTestResult.appCode}</div>
+                              <div className="text-[11px] text-slate-500">Ref1: {soapTestResult.ref1Prefix}</div>
+                              <div className="text-[11px] text-slate-500">Ref2: {soapTestResult.ref2Prefix}</div>
+                            </div>
+                          </div>
+                        )}
+
+                        {showSoapDetails && (
+                          <div className="mt-3 space-y-2">
+                            {soapTestResult.rawXmlRequest && (
+                              <div>
+                                <div className="text-[10px] font-bold text-slate-500 uppercase">SOAP XML Request ที่ส่งไป:</div>
+                                <pre className="text-[10px] font-mono p-2 bg-slate-900 text-slate-200 rounded max-h-36 overflow-y-auto whitespace-pre-wrap">
+                                  {soapTestResult.rawXmlRequest}
+                                </pre>
+                              </div>
+                            )}
+                            {soapTestResult.rawXmlResponse && (
+                              <div>
+                                <div className="text-[10px] font-bold text-slate-500 uppercase">SOAP XML Response ที่ได้รับ:</div>
+                                <pre className="text-[10px] font-mono p-2 bg-slate-900 text-slate-200 rounded max-h-36 overflow-y-auto whitespace-pre-wrap">
+                                  {soapTestResult.rawXmlResponse}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="pt-3">
                 <button
                   type="submit"
@@ -690,6 +927,13 @@ export const ThaiQrManagementTab: React.FC = () => {
                       A000000677010112
                     </div>
                   </div>
+                </div>
+
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                  <div className="text-[10px] text-emerald-200">โหมดการสร้าง QR:</div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${billerForm.use_central_service ? 'bg-amber-400 text-emerald-950' : 'bg-white/20 text-white'}`}>
+                    {billerForm.use_central_service ? '⚡ KU Central SOAP' : '🛡️ BOT Tag 30 Standalone'}
+                  </span>
                 </div>
               </div>
             </div>

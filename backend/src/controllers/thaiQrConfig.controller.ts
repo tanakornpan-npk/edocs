@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../database/db.js';
 import { ThaiQrBillPaymentService } from '../services/thaiQrBillPayment.service.js';
+import { KuCentralQrService } from '../services/kuCentralQr.service.js';
 import { migrateThaiQr } from '../database/migrate_thai_qr.js';
 
 export class ThaiQrConfigController {
@@ -20,7 +21,18 @@ export class ThaiQrConfigController {
   }
 
   static async saveBillerConfig(req: Request, res: Response): Promise<void> {
-    const { id, biller_id, merchant_name, service_name_th, is_active = true } = req.body;
+    const {
+      id,
+      biller_id,
+      merchant_name,
+      service_name_th,
+      is_active = true,
+      use_central_service = false,
+      soap_url,
+      biller_suffix,
+      app_code,
+      callback_url,
+    } = req.body;
 
     if (!biller_id || !merchant_name) {
       res.status(400).json({ success: false, message: 'กรุณาระบุ Biller ID และชื่อบัญชีผู้รับชำระ' });
@@ -37,22 +49,60 @@ export class ThaiQrConfigController {
       if (id) {
         const updateRes = await db.query(
           `UPDATE biller_configs
-           SET biller_id = $1, merchant_name = $2, service_name_th = $3, is_active = $4, updated_at = CURRENT_TIMESTAMP
-           WHERE id = $5 RETURNING *`,
-          [biller_id.trim(), merchant_name.trim(), (service_name_th || '').trim(), is_active, id]
+           SET biller_id = $1,
+               merchant_name = $2,
+               service_name_th = $3,
+               is_active = $4,
+               use_central_service = $5,
+               soap_url = $6,
+               biller_suffix = $7,
+               app_code = $8,
+               callback_url = $9,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $10 RETURNING *`,
+          [
+            biller_id.trim(),
+            merchant_name.trim(),
+            (service_name_th || '').trim(),
+            is_active,
+            !!use_central_service,
+            (soap_url || 'https://fin.ku.ac.th/qr/service').trim(),
+            (biller_suffix || '01').trim(),
+            (app_code || '06').trim(),
+            (callback_url || 'https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback').trim(),
+            id,
+          ]
         );
         savedRecord = updateRes.rows[0];
       } else {
         const insertRes = await db.query(
-          `INSERT INTO biller_configs (biller_id, merchant_name, service_name_th, is_active)
-           VALUES ($1, $2, $3, $4)
+          `INSERT INTO biller_configs (
+             biller_id, merchant_name, service_name_th, is_active,
+             use_central_service, soap_url, biller_suffix, app_code, callback_url
+           )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            ON CONFLICT (biller_id) DO UPDATE SET
              merchant_name = EXCLUDED.merchant_name,
              service_name_th = EXCLUDED.service_name_th,
              is_active = EXCLUDED.is_active,
+             use_central_service = EXCLUDED.use_central_service,
+             soap_url = EXCLUDED.soap_url,
+             biller_suffix = EXCLUDED.biller_suffix,
+             app_code = EXCLUDED.app_code,
+             callback_url = EXCLUDED.callback_url,
              updated_at = CURRENT_TIMESTAMP
            RETURNING *`,
-          [biller_id.trim(), merchant_name.trim(), (service_name_th || '').trim(), is_active]
+          [
+            biller_id.trim(),
+            merchant_name.trim(),
+            (service_name_th || '').trim(),
+            is_active,
+            !!use_central_service,
+            (soap_url || 'https://fin.ku.ac.th/qr/service').trim(),
+            (biller_suffix || '01').trim(),
+            (app_code || '06').trim(),
+            (callback_url || 'https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback').trim(),
+          ]
         );
         savedRecord = insertRes.rows[0];
       }
@@ -364,6 +414,46 @@ export class ThaiQrConfigController {
       res.json({ success: true, data: qrResult });
     } catch (err: any) {
       res.status(500).json({ success: false, message: 'ไม่สามารถสร้าง QR ทดสอบ: ' + err.message });
+    }
+  }
+
+  // =========================================================================
+  // 7. TEST KU CENTRAL SOAP WEB SERVICE
+  // =========================================================================
+
+  static async testKuCentralSoap(req: Request, res: Response): Promise<void> {
+    const {
+      soap_url,
+      app_code,
+      biller_suffix,
+      callback_url,
+      amount = 1.0,
+      student_id = '6540201234',
+      ref2_code = '300',
+    } = req.body;
+
+    try {
+      const result = await KuCentralQrService.requestOeaQr({
+        amount: Number(amount) || 1.0,
+        transactionId: `TEST-${Date.now().toString().slice(-6)}`,
+        studentId: student_id,
+        ref2Code: ref2_code,
+        appCode: app_code,
+        billerSuffix: biller_suffix,
+        soapUrl: soap_url,
+        callbackUrl: callback_url,
+        timeoutMs: 8000,
+      });
+
+      res.json({
+        success: result.success,
+        data: result,
+        message: result.success
+          ? 'เชื่อมต่อและสร้าง QR Code จากระบบกลาง มก. สำเร็จ'
+          : `การเชื่อมต่อระบบกลางไม่สำเร็จ: ${result.error}`,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการทดสอบ: ' + err.message });
     }
   }
 }

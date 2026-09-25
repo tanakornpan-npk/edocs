@@ -67,6 +67,108 @@ export class PaymentController {
   }
 
   /**
+   * รองรับ Webhook Callback จากระบบสร้าง QR กลาง มก. / ธนาคาร (ตามคู่มือ ข้อ 10 หน้า 10)
+   */
+  static async handleKuQrCallback(req: Request, res: Response): Promise<void> {
+    const {
+      qrId,
+      appCode,
+      appId,
+      transactionId,
+      amount,
+      bankConfirmedTime,
+      bankNotification,
+    } = req.body;
+
+    console.log('[KU Central QR Webhook] Received payment callback:', JSON.stringify(req.body));
+
+    if (!transactionId) {
+      res.status(400).json({ success: false, message: 'Missing transactionId' });
+      return;
+    }
+
+    try {
+      // Find request by order_no (transactionId)
+      const reqRes = await db.query(
+        'SELECT * FROM document_requests WHERE order_no = $1',
+        [transactionId]
+      );
+
+      if (reqRes.rows.length === 0) {
+        console.warn(`[KU Central QR Webhook] Request not found for transactionId: ${transactionId}`);
+        res.status(404).json({ success: false, message: 'Order not found' });
+        return;
+      }
+
+      const requestRecord = reqRes.rows[0];
+
+      // If already processed, acknowledge receipt
+      if (['paid', 'processing', 'ready_for_pickup', 'shipped', 'completed'].includes(requestRecord.status)) {
+        res.json({ success: true, message: 'Order is already processed' });
+        return;
+      }
+
+      // Generate receipt number
+      const yearStr = new Date().getFullYear() + 543;
+      const countRes = await db.query("SELECT COUNT(*) FROM payments WHERE status = 'success'");
+      const seq = String(parseInt(countRes.rows[0].count, 10) + 1).padStart(5, '0');
+      const receipt_no = `REC-${yearStr}-${seq}`;
+
+      const bankTxnId = bankNotification?.transactionId || `KUQR-${qrId || Date.now()}`;
+      const payerName = bankNotification?.payerAccountName || bankNotification?.payerName || 'นิสิต/ผู้ชำระเงิน';
+
+      // Update payment record
+      await db.query(
+        `UPDATE payments
+         SET status = 'success',
+             paid_at = CURRENT_TIMESTAMP,
+             transaction_ref = $1,
+             receipt_no = $2,
+             qr_id = $3,
+             bank_transaction_id = $4,
+             bank_confirmed_at = $5,
+             bank_notification = $6
+         WHERE request_id = $7`,
+        [
+          bankTxnId,
+          receipt_no,
+          qrId ? String(qrId) : null,
+          bankTxnId,
+          bankConfirmedTime ? new Date(bankConfirmedTime) : new Date(),
+          JSON.stringify(bankNotification || {}),
+          requestRecord.id,
+        ]
+      );
+
+      // Update request status to 'processing'
+      await db.query(
+        `UPDATE document_requests SET status = 'processing', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        [requestRecord.id]
+      );
+
+      // Insert Activity Log
+      await db.query(
+        `INSERT INTO activity_logs (request_id, action_name, description)
+         VALUES ($1, 'KU_QR_AUTO_PAYMENT', $2)`,
+        [
+          requestRecord.id,
+          `ชำระเงินผ่านระบบกลาง มก. / ธนาคารสำเร็จ (จำนวน ${amount || requestRecord.total_amount} บาท โดย ${payerName}) ใบเสร็จเลขที่ ${receipt_no}`,
+        ]
+      );
+
+      res.json({
+        success: true,
+        message: 'Payment verified and order updated successfully',
+        order_no: transactionId,
+        receipt_no,
+      });
+    } catch (err: any) {
+      console.error('[KU Central QR Webhook] Error processing callback:', err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  /**
    * ดึงข้อมูลใบเสร็จรับเงินสำหรับพิมพ์ (Print-Ready Receipt Data)
    */
   static async getReceipt(req: Request, res: Response): Promise<void> {
