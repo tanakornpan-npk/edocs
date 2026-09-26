@@ -168,7 +168,7 @@ export class KuCentralQrService {
   ): Promise<KuCentralQrResponse> {
     const soapUrl = options.soapUrl || process.env.KU_QR_SOAP_URL || 'https://fin.ku.th/qr/service';
     const appCode = options.appCode || process.env.KU_QR_APP_CODE || '06'; // 06: ค่าเอกสารสำคัญทางการศึกษา
-    const billerSuffix = options.billerSuffix || process.env.KU_QR_BILLER_SUFFIX || '01';
+    const billerSuffix = options.billerSuffix || process.env.KU_QR_BILLER_SUFFIX || '50';
     const expireDate = options.expireDate || this.formatExpireDate();
     const ref1Prefix = this.buildRef1Prefix(options.studentId);
     const ref2Prefix = this.buildRef2Prefix(options.ref2Code);

@@ -1,0 +1,3767 @@
+=== PAGE 1 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+1 of 25 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+ 
+ 
+(v1.4 – 20230703 By Sorapong Ruanmanee) 
+ 
+ 
+ 
+
+
+=== PAGE 2 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+2 of 25 
+Table of Contents 
+ 
+1. ความเป็นมา ................................................................................................................................................................................... 3 
+2. ขั้นตอนการใช้งาน ........................................................................................................................................................................... 3 
+3. ต าแหน่ง URL ที่เรียกใช้ ................................................................................................................................................................... 4 
+4. ต าแหน่ง URL ของ WSDL ............................................................................................................................................................... 4 
+5. ข้อมูลที่ต้องส่งมา ............................................................................................................................................................................ 4 
+6. การก าหนดค่า Ref1 และ Ref2 ......................................................................................................................................................... 6 
+6.1 โครงสร้างของ Ref1 และ Ref2 ................................................................................................................................................. 6 
+6.2 ตัวอย่าง Ref1 และ Ref2 ของการช าระเงินค่าธรรมเนียมการศึกษา .............................................................................................. 7 
+7. ข้อมูลที่ได้รับกลับไป ........................................................................................................................................................................ 8 
+8. ข้อมูลที่ได้รับกลับเมื่อมีข้อผิดพลาด .................................................................................................................................................. 9 
+9. หน้าเว็บส าหรับทดสอบ .................................................................................................................................................................... 9 
+10. ผลตอบกลับ (Callback) .............................................................................................................................................................. 10 
+11. การใช้งานโดยภาษา PHP ............................................................................................................................................................ 10 
+12. การใช้งานโดยภาษา Java ........................................................................................................................................................... 12 
+13. การใช้งานโดยภาษา JavaScript .................................................................................................................................................. 12 
+Appendix A - WSDL และ XSD ......................................................................................................................................................... 14 
+ 
+ 
+ 
+ 
+
+
+=== PAGE 3 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+3 of 25 
+1. ความเป็นมา 
+เพื่อให้ผู้ใช้ที่ต้องการสร้างรูปภาพ QR Code ที่ไว้ส าหรับช าระเงินให้กับ ส านักบริการการศึกษา มก. โดยเปิด
+บริการให้ส่งข้อมูลตั้งต้นเข้ามาเป็น WebServices SOAP และจะได้รับรูปภาพ QR Code กลับไปเป็นรูปแบบ PNG เพื่อ
+น าไปแสดงผลบนแอพพลิเคชันปลายทางได้ 
+เอกสารฉบับนี้ท าขึ้นก่อน โดยระบบยังไม่สมบูรณ์มีวัตถุประสงค์เพื่อเผยแพร่ WSDL (Web Services 
+Description Language) และ XSD (XML Schema) ที่จะยึดเป็นมาตรฐานในการแลกเปลี่ยนข้อมูล เพื่อให้แอพพลิเคชัน
+ปลายทางผู้เรียกใช้สามารถพัฒนาระบบไปพร้อมกันได้ 
+2. ขั้นตอนการใช้งาน 
+ต่อไปนี้เป็นล าดับขั้นตอนการใช้งาน 
+1. แอพพลิเคชัน มีหน้าเว็บหรือ User Interface ให้ลูกค้าช าระเงิน 
+2. แอพพลิเคชัน ตรวจสอบจ านวนเงินกับลูกค้า 
+3. แอพพลิเคชัน ส่งค าสั่ง (เป็น SOAP) มาที่ระบบ QR เพื่อขอให้สร้าง QR Code  
+4. ระบบ QR รับค าสั่ง ตรวจสอบความถูกต้องข้อมูล แล้วบันทึกไว้ในฐานข้อมูล แล้วสร้าง QR Code เป็นรูปภาพ
+และส่งกลับไปในรูปแบบ Base64 ของเนื้อหาภาพประเภท PNG 
+5. แอพพลิเคชันเอาภาพ QR ไปแสดงให้ผู้ใช้ดู (โดยใช้แท็ก <img> หรือ ImageViewer เป็นต้น) 
+6. ลูกค้าใช้แอพของธนาคารสแกนภาพ QR เพื่อช าระเงิน และปรากฏรหัส Ref1 และ Ref2 ให้เห็น 
+7. ลูกค้ากดปุ่มยืนยันช าระเงินที่แอพของธนาคาร 
+8. ธนาคารรับค าสั่งให้โอนเงินจากบัญชีลูกค้ามาที่บัญชีของ มก. 
+9. ธนาคารโอนเงินจากบัญชีลูกค้ามาที่บัญชีของ มก. 
+10. ธนาคารแจ้งมาที่ระบบ QR ว่ามีการโอนเงินแล้ว 
+11. ระบบ QR แจ้งกลับไปที่ แอพพลิเคชัน ว่ามีการโอนเงินแล้ว 
+ขั้นตอนข้างต้นสามารถอธิบายได้ด้วยไดอะแกรมต่อไปนี้ (ตามหมายเลขลูกศร) 
+ 
+รูปภาพ 1 ล าดับการท างานของ QR Service 
+QR Service
+Bank
+Payer
+Client Application
+QR Service
+(      )
+Bank
+(      )
+Payer
+(     )
+3: generate QR code
+2: compute total amount
+1: using web form to order product
+Client Application
+(         )
+4: return QR code image
+5: display QR code image
+6: launch mobile banking app
+7: scan QR code image
+8: accept payment
+9: direct debit
+10: payment completed 
+notification
+11: payment completed 
+notification
+https://
+eduserv.ku.ac.th/
+qr/service
+Remote Service on the Internet
+XML       2            1.0 
+                                1.1 
+                  . 2562                   
+       1.0           getQrRequest
+       1.1           getOeaQrRequest
+
+
+=== PAGE 4 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+4 of 25 
+ในขณะที่เขียนเอกสารฉบับนี้เป็น (พย. 2562) ระบบได้เปิดใช้ไปแล้ว โดยสร้าง QR ให้กับโครงการเรียนล่วงหน้า และได้มี
+การปรับปรุงให้มี QR ที่เป็นแบบทั่วไปเพื่อให้ใช้กับระบบอื่นได้ด้วย การให้บริการจึงมี Operation แยกออกเป็น 2 ชื่อคือ 
+getQr จะเป็นเวอร์ชัน 1.0 เดิมของโครงการเรียนล่วงหน้า แต่ getOeaQr จะเป็นเวอร์ชัน 1.1 ที่ก าลังพัฒนาขึ้นใหม่เพื่อให้
+ใช้งานได้ทั่วไป  
+3. ต าแหน่ง URL ที่เรียกใช้ 
+ต าแหน่ง URL ที่ให้เรียกใช้งานส าหรับระหว่างการทดสอบอยู่ที่ 
+https://fin.ku.th/qrTest/service 
+หมายเหตุ – เปิดใช้งานวันที่ 29 พย. 2562 (ปัจจุบัน 3/7/2566 หยุดใช้งาน URL นี้ไปแล้ว) 
+และต าแหน่ง URL ที่ให้เรียกใช้งานของระบบจริงจะอยู่ที่ 
+https://fin.ku.th/qr/service 
+4. ต าแหน่ง URL ของ WSDL 
+ส าหรับแอพพลิเคชันที่ใช้วิธีการสร้างโค้ดอัตโนมัติจากไฟล์ WSDL และ XSD เมื่อเปิดระบบแล้ว (วันที่ 29 พย. 
+2562) ท่านสามารถดาวน์โหลด WSDL ได้จาก 
+https://fin.ku.th/qrTest/xml/qr.wsdl 
+ส าหรับระบบทดสอบ (ปัจจุบัน 3/7/2566 หยุดใช้งาน URL นี้ไปแล้ว) และส าหรับระบบจริงให้ดาวน์โหลดได้ที่ 
+https://fin.ku.th/qr/xml/qr.wsdl 
+ปัจจุบัน หากไม่สามารถดาวน์โหลดผ่าน URL ได้ ท่านสามารถใช้เนื้อหา WSDL และ XSD ที่ปรากฏใน 
+Appendix A ของเอกสารนี้ไปใช้เพื่อสร้างโค้ดอัตโนมัติได้ก่อน (การสร้างโค้ดอัตโนมัติขึ้นอยู่กับแพลตฟอร์มการพัฒนา
+ระบบที่ท่านใช้ เช่น Java จะใช้เครื่องมือ wsimport ส่วน .NET จะใช้เครื่องมือ wsdl เป็นต้น) 
+5. ข้อมูลที่ต้องส่งมา 
+ผู้ใช้งานที่เรียกใช้ผ่านทาง Web Services จะต้องใช้ Operation ชื่อว่า getOeaQr และป้อนอินพุตเป็นโครงสร้างข้อมูล
+ตามภาพต่อไปนี้ 
+
+
+=== PAGE 5 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+5 of 25 
+ 
+รูปภาพ 2 ข้อมูลอินพุตให้กับโอเปอเรชัน getOeaQr เพื่อสร้างรูปภาพ QR Code 
+ตัวอย่างของ XML ที่ส่งมาเพื่อขอรูปภาพ QR Code (เวอร์ชัน 1.1)  
+ซอร์สโค้ด 1 ข้อมูล XML ที่ส่งมาที่เว็บเซอร์วิสเพื่อขอบริการสร้างภาพ QR 
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
+xmlns:type="http://registrar.ku.ac.th/qr/type"> 
+   <soapenv:Header/> 
+   <soapenv:Body> 
+      <type:getOeaQrRequest> 
+         <type:expireDate>301119</type:expireDate> 
+         <type:appCode>34</type:appCode> 
+         <type:transactionId>1234</type:transactionId> 
+         <type:amount>5500.50</type:amount> 
+         <type:ref1Prefix>00001234567890123</type:ref1Prefix> 
+         <type:ref2Prefix>000012</type:ref2Prefix> 
+         <type:billerSuffix>87</type:billerSuffix> 
+         <type:callbackUrl>http://xxx.ku.ac.th/callback/qr</type:callbackUrl> 
+      </type:getOeaQrRequest> 
+   </soapenv:Body> 
+</soapenv:Envelope> 
+ต่อไปนี้เป็นค าอธิบายฟิลด์ข้อมูลที่ปรากฏในเนื้อหา XML 
+ตาราง 1 ค าอธิบายของฟิลด์ข้อมูลอินพุต 
+ล าดับ 
+ฟิลด์ข้อมูล 
+ชนิดข้อมูล 
+ค าอธิบาย 
+ตัวอย่าง 
+1 
+expireDate 
+ตัวอักษรในรูปแบบ 
+ddMMyy 
+วันที่หมดอายุ ปี คศ. 
+ถ้าเกินกว่าวันที่ระบุนี้ ระบบต้นทางจะไม่รับช าระ 
+โดย App ของ SCB จะรับรู้และตรวจสอบให้ 
+2 
+appCode 
+ตัวอักษรแบบตัวเลข 
+ประเภทการช าระหรือรหัส
+ของระบบ 
+ปัจจุบันมีค่าดังนี้ 
+01 – TCAS 
+02 – KU9   
+03 - ค่าปรับ 
+04 - เรียนล่วงหน้า 
+
+
+=== PAGE 6 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+6 of 25 
+05 - ตลาดนัดหลักสูตร 
+3 
+transactionId 
+ตัวอักษรแบบตัวเลข 
+เลขที่ธุรกรรม 
+เลขอะไรก็ได้ ให้ยึดระบบต้นทางเป็นหลัก ระบบ 
+QR จะช่วยเก็บเลขนี้ไว้ให้และส่งกลับไปให้ตอน
+ที่แจ้งกลับเมื่อมีการช าระเงินผ่าน QR ซึ่งจะให้
+ระบบต้นทางผูกโยงข้อมูลเพื่อเสร็จสิ้นธุรกรรมได้ 
+4 
+amount 
+ตัวเลขทศนิยม 2 ต าแหน่ง 
+จ านวนเงิน 
+ใช้ ทศนิยม 2 ต าแหน่ง และต้องมีค่ามากกว่า 0 
+และมีค่าไม่เกิน 99999.99 (8 หลักรวมจุด
+ทศนิยม) 
+5 
+ref1Prefix 
+ตัวอักษรแบบตัวเลข 
+ข้อมูลเสริมเฉพาะระบบ 
+เป็นตัวอักษรแบบตัวเลขขนาด 17 หลัก โดยให้
+แอพพลิเคชันต้นทางเป็นผู้ก าหนดเองได้ (กรุณา
+ดูที่ ภาพโครงสร้าง QR เพื่อความเข้าใจ) 
+6 
+ref2Prefix 
+ตัวอักษรแบบตัวเลข 
+ข้อมูลเสริมเฉพาะระบบ 
+เป็นตัวอักษรแบบตัวเลขขนาด 6 หลัก โดยให้
+แอพพลิเคชันต้นทางเป็นผู้ก าหนดเองได้ (กรุณา
+ดูที่ ภาพโครงสร้าง QR เพื่อความเข้าใจ) 
+7 
+billerSuffix 
+ตัวอักษรแบบตัวเลข 
+เลขระบุหน่วยงานย่อย 
+เป็นตัวเลข 2 หลักท้ายของ Merchant ID ที่ปกติ
+มี 15 หลัก โดย 13 หลักแรกเป็นเลขนิติบุคคล 
+ของ มก. และ 2 หลักท้ายเป็นเลขที่หน่วยงาน
+ย่อย เช่น ปัจจุบัน ส านักบริการการศึกษา ใช้
+เลขที่ 87 ในการระบุหน่วยงานย่อย ถ้ามีเพียง
+หลักเดียว กรุณาเติม 0 ข้างหน้าด้วย เช่น 01 
+เป็นต้น 
+8 
+callbackUrl 
+ต าแหน่ง URL 
+ที่จะให้ส่งรีเควสต์ยืนยัน 
+เมื่อธนาคารแจ้งกลับมาจะส่งรีเควสต์กลับไปให้
+ระบบต้นขั้วพร้อมกับข้อมูล Ref1 Ref2 ที่ได้จาก
+ธนาคาร 
+6. การก าหนดค่า Ref1 และ Ref2 
+ค่าของ Ref1 และ Ref2 เป็นค่าอ้างอิงที่ธนาคารจะส่งกลับมาให้เมื่อมีการช าระเงินเสร็จสิ้น และระบบต้นขั่วข้อมูลจะ
+น าเอา Ref1 และ Ref2 ไปจับคู่เข้ากับข้อมูลตั้งต้นเพื่ออัพเดตกลับเข้าสู่ระบบของตนเอง อย่างไรก็ตามพบว่า Ref1 และ 
+Ref2 มีความเป็นเฉพาะทางแยกกันไปตามบริบทการใช้งานของแต่ละประเภทการจ่ายเงิน ดังนั้น การออกแบบ Ref1 และ 
+Ref2 ให้สามารถใช้งานร่วมกับ SCB และร่วมกับหน่วยงานย่อยใน มก. ได้จึงก าหนดให้ท าตามรูปแบบต่อไปนี้ 
+6.1 โครงสร้างของ Ref1 และ Ref2  
+ต่อไปนี้เป็นภาพโครงสร้างข้อมูล Ref1 และ Ref2 ที่ได้จากการปรับปรุงให้สอดคล้องกับระบบ Check Digit ของ SCB ที่
+ก าหนดว่าจะวางวันที่หมดอายุไว้ที่ Ref2 และจะวาง Check Digit ไว้ที่ 3 หลักสุดท้ายของ Ref1 ดังภาพต่อไปนี้ 
+
+
+=== PAGE 7 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+7 of 25 
+ 
+รูปภาพ 3 โครงสร้าง Ref1 และ Ref2 ของ QR ที่ใช้งานร่วมกันระหว่าง สบก. และ สบค. (ปี พ.ศ. 2562) 
+ในภาพข้างต้น ที่ Ref1 หลักที่ 18 – 20 จะถูกจองใช้โดย Check Digit ของ SCB และที่ Ref2 หลักที่ 15 – 20 จะถูกจองใช้
+โดยวันที่หมดอายุ  ส่วนที่เหลือ มก. สามารถออกแบบเองได้ และจากการประชุมเมื่อวันที่ 25 พย. 2562 ระหว่าง สบก. 
+และ สบค. ได้ออกแบบให้มี App Code เป็นตัวระบุแยกแยะว่าเป็น QR ของระบบอะไร และระบบ QR ได้ขอจองพื้นที่หลัก
+ที่ 9 – 14 ของ Ref2 ไว้ส าหรับเป็น QR ID ที่จะเป็นเลขรันนิ่งแยกกันไปตามแต่ละ App Code ด้วย 
+ 
+ส่วนที่ Ref1 หลักที่ 1 – 17 อนุญาตให้ผู้พัฒนาระบบที่มี App Code เป็นของตนเองสามารถออกแบบฟิลด์ข้อมูล
+ได้เองว่าจะวางค่าอะไรในบริเวณนี้ รวมทั้งที่ส่วนที่ Ref2 หลักที่ 1 – 6 ก็เช่นกัน คือเป็นพื้นที่เปิดที่อนุญาตให้นักพัฒนา
+ระบบออกแบบโครงสร้างข้อมูลเอง  
+6.2 ตัวอย่าง Ref1 และ Ref2 ของการช าระเงินค่าธรรมเนียมการศึกษา 
+ตัวอย่างของการออกแบบพื้นที่ Ref1 และ Ref2 เพื่อใช้กับระบบช าระเงินค่าธรรมเนียมการศึกษาเป็นดังภาพต่อไปนี้ 
+ 
+รูปภาพ 4 โครงสร้างข้อมูล Ref1 และ Ref2 ส าหรับการช าระค่าธรรมเนียมการศึกษา 
+ในภาพข้างต้นมีข้อสังเกตดังต่อไปนี้ 
+• ที่ Ref1 หลักที่ 18 – 20  
+เป็น Check Digit ตามสูตรของ SCB ที่ล็อคไว้แล้วว่าต้องการใช้งาน 3 หลักนี้ 
+• ที่ Ref1 หลักที่ 1 – 17  
+ทาง สบค. ได้ออกแบบให้วางข้อมูล รหัสนิสิต วง ปี เทอม และส่วนหัวของ ERP 
+Code 
+• ที่ Ref2 หลักที่ 7 – 8  
+ก าหนดให้เป็นพื้นที่ของ App Code และ App Code ของค่าธรรมเนียม
+การศึกษาคือ 02 
+• ที่ Ref2 หลักที่ 9 – 14  
+ก าหนดให้เป็นพื้นที่ของ QR ID (ตรงกับ App ID ในข้อมูล XML Schema)  
+0
+1
+0
+2
+0
+3
+0
+4
+0
+5
+0
+6
+0
+7
+0
+8
+0
+9
+0
+10
+0
+11
+0
+12
+0
+13
+0
+14
+0
+15
+0
+16
+Ref 1
+0
+2
+2
+0
+0
+17
+1
+18
+4
+19
+8
+20
+check digit
+       SCB
+KU QR           62 (   SCB Check Digit) -        Application         
+    1        1   SCB 
+          4         1     
+              
+               Application                      App Code            
+0
+1
+0
+2
+0
+3
+0
+4
+0
+5
+0
+6
+0
+7
+0
+8
+0
+9
+0
+10
+0
+11
+0
+12
+0
+13
+0
+14
+2
+15
+1
+16
+1
+17
+1
+18
+1
+19
+9
+20
+Ref 2
+0
+3
+2
+0
+               
+           ddMMyy     
+211119    21/11/2019
+QR ID (6)         999,999
+App 
+Code
+               
+Application            
+          App Code 
+           
+     
+                    QR 
+Generator Service
+01 – TCAS
+02 – KU9  03 -      
+04 -            
+05 -             
+      App Code                
+   20191125
+     
+       
+             SCB QR
+     
+       
+             
+SCB QR
+0
+1
+0
+2
+0
+3
+0
+4
+0
+5
+0
+6
+0
+7
+0
+8
+0
+9
+0
+10
+1
+11
+6
+12
+2
+13
+3
+14
+1
+15
+0
+16
+Ref 1
+0
+2
+2
+0
+8
+17
+1
+18
+4
+19
+8
+20
+check digit
+       SCB
+7
+1
+1
+2
+2
+3
+0
+4
+9
+5
+3
+6
+0
+7
+2
+8
+0
+9
+0
+10
+0
+11
+0
+12
+0
+13
+0
+14
+2
+15
+1
+16
+1
+17
+1
+18
+1
+19
+9
+20
+Ref 2
+0
+3
+2
+0
+               
+KU QR           62 (   SCB Check Digit) – 02                  
+           ddMMyy     
+211119    21/11/2019
+      
+   /   /    
+QR ID (6)         999,999
+01 – TCAS
+02 – KU9
+03 -      
+04 -            
+05 -             
+ERP Code
+App 
+Code
+ERP Code
+    1        1   SCB 
+          4         1     
+              
+                QR                     02                                                  
+            Ref1        1    17     Ref2        1    6                            
+
+
+=== PAGE 8 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+8 of 25 
+• ที่ Ref2 หลักที่ 15 – 20  
+เป็นที่วางค่าวันที่หมดอายุ และก าหนดโดย SCB ให้วางที่ต าแหน่งนี้เท่านั้น 
+• ที่ Ref2 หลักที่ 1 – 6  
+ทาง สบค. ได้ออกแบบให้วางข้อมูลส่วนท้ายของ ERP Code  
+จากตัวอย่างข้างต้นจะเห็นว่า QR นี้มีมาตรฐานที่ก าหนดโดย 3 ระบบ คือ ระบบ Check Digit ของ SCB ระบบ QR 
+และระบบค่าธรรมเนียมของ สบค. ซึ่งหากท่านเป็นนักพัฒนาระบบใน มก. และต้องการใช้ QR กับระบบของท่านเอง ท่าน
+สามารถตั้ง App Code ที่ไม่ซ ้ากับระบบอื่น และออกแบบพื้นที่บริเวณเปิดใน Ref1 และ Ref2 ได้ตามที่ท่านต้องการ
+เช่นเดียวกับตัวอย่างในหัวข้อนี้ 
+7. ข้อมูลที่ได้รับกลับไป 
+ถ้าระบบได้รับค าสั่งที่ถูกต้องจะสร้างภาพ QR ในรูปแบบ PNG แล้วเข้ารหัสเป็น Base64 ส่งกลับมาให้ทาง SOAP 
+Response โดยมีโครงสร้างข้อมูลดังนี้ 
+ 
+รูปภาพ 5 โครงสร้างข้อมูลที่บริการส่งกลับไปให้แอพพลิเคชัน 
+ตัวอย่างของข้อมูล XML ที่ส่งกลับไปให้แอพพลิเคชัน 
+ซอร์สโค้ด 2 ข้อมูลรูปภาพ QR ที่ได้รับกลับไป 
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"> 
+   <soapenv:Body> 
+      <getOeaQrResponse xmlns="http://registrar.ku.ac.th/qr/type"> 
+         <qrResult> 
+            <id>11</id> 
+            <kind>image/png</kind> 
+            <content>data:image/png;base64, 
+iVBORw0KGgoAAAANSUhEUgAAAwwAAAMMCAYAAAD+fyB7AACAAElEQVR42uy9B3SW5bZo/W3dxbbt 
+vSsqKAoC0ktCQkLovXdFEAtFRRBBOiI91NBC77333nvvTXqVAKEktHnf5Fwde5/xnzP+c8/9/7PV 
+... 
+AAAAAEAYAAAAAAAAYQAAAAAAAIQBAAAAAAAQBgAAAAAAQBgAAAAAAOD95n8AlowymV+yNpAAAAAA 
+SUVORK5CYII=</content> 
+            <width>780</width> 
+            <height>780</height> 
+         </qrResult> 
+         <appCode>34</appCode> 
+         <appId>1</appId> 
+
+
+=== PAGE 9 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+9 of 25 
+         <transactionId>1234</transactionId> 
+         <startTime>2562-11-27T12:06:13.850+07:00</startTime> 
+         <endTime>2562-11-27T12:06:14.750+07:00</endTime> 
+         <duration>900</duration> 
+         <success>true</success> 
+      </getOeaQrResponse> 
+   </soapenv:Body> 
+</soapenv:Envelope> 
+สังเกตว่าท่านควรตรวจสอบก่อนว่า success = true จึงจะดึงภาพ QR ไปใช้แสดงผล แต่ถ้า success = false แสดงว่ามี
+ข้อผิดพลาดบางอย่างเกิดขึ้น  
+8. ข้อมูลที่ได้รับกลับเมื่อมีข้อผิดพลาด 
+หากระบบพบว่ามีข้อผิดพลาดจะส่งกลับมาเป็น XML ที่มีรูปแบบคล้ายดังต่อไปนี้ 
+ซอร์สโค้ด 3 ตัวอย่างเนื้อหา XML ที่แอพพลิเคชันจะได้รับกลับมาเมื่อมีข้อผิดพลาดเกิดขึ้น 
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"> 
+   <soapenv:Body> 
+      <getOeaQrResponse xmlns="http://registrar.ku.ac.th/qr/type"> 
+         <errorInfo> 
+            <code>501</code> 
+            <message>Invalid request data</message> 
+            <stackTrace>Thai citizen No. must not be empty. 
+Puchase ID must not be empty.</stackTrace> 
+         </errorInfo> 
+         <startTime>2562-11-15T08:49:33.111+07:00</startTime> 
+         <endTime>2562-11-15T08:49:33.128+07:00</endTime> 
+         <duration>17</duration> 
+         <success>false</success> 
+      </getOeaQrResponse> 
+   </soapenv:Body> 
+</soapenv:Envelope> 
+9. หน้าเว็บส าหรับทดสอบ 
+ท่านสามารถทดสอบการสร้าง QR ได้โดยเข้าไปที่ต าแหน่ง URL 
+https://eduserv.ku.ac.th/qrTest/page/OeaQrBuilder.html 
+ตัวอย่างการกรอกข้อมูลเป็นดังนี้ 
+ 
+รูปภาพ 6 ตัวอย่างการกรอกข้อมูลเพื่อสร้าง QR Code 
+เมื่อกดปุ่ม Build QR Code จะได้ภาพ QR  ดังนี้ 
+
+
+=== PAGE 10 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+10 of 25 
+ 
+รูปภาพ 7 ภาพ QR ที่ได้จากการเรียกใช้งานผ่านเว็บเซอร์วิส 
+ท่านสามารถใช้ App ของธนาคารเช่น SCB Mobile App ทดลองสแกนภาพ QR นี้เพื่อตรวจสอบว่าสามารถอ่านค่าได้
+อย่างถูกต้องหรือไม่ 
+10. ผลตอบกลับ (Callback) 
+เมื่อธนาคารประมวลผลการโอนเงินเสร็จจะแจ้งกลับมายังระบบนี้และระบบนี้จะส่งกลับไปให้ระบบผู้ร้องขอ โดยมีรูปแบบ
+ข้อมูลคล้ายกับภาพต่อไปนี้ 
+{ 
+ 
+"qrId": 14635, 
+ 
+"appCode": "01", 
+ 
+"appId": 5, 
+ 
+"ref1Prefix": "50001234567890121", 
+ 
+"ref2Prefix": "143333", 
+ 
+"amount": "1.0", 
+ 
+"expireDate": "311219", 
+ 
+"qrCreatedTime": 1574956726000, 
+ 
+"bankConfirmedTime": 1574956792000, 
+ 
+"transactionId": "143333", 
+ 
+"bankNotification": { 
+ 
+ 
+"payeeProxyId": "099400015938287", 
+ 
+ 
+"payeeProxyType": "BILLERID", 
+ 
+ 
+"payeeAccountNumber": "2353002135", 
+ 
+ 
+"payerAccountNumber": "2352030614", 
+ 
+ 
+"payerAccountName": "ทดสอบ ทดสอบ", 
+ 
+ 
+"payerName": "ทดสอบ ทดสอบ", 
+ 
+ 
+"sendingBankCode": "014", 
+ 
+ 
+"receivingBankCode": "014", 
+ 
+ 
+"amount": "1.00", 
+ 
+ 
+"transactionId": "cab14d7757e641e4b15743e62f5c1e6d", 
+ 
+ 
+"transactionDateandTime": "2019-11-28T23:06:42.000+07:00", 
+ 
+ 
+"billPaymentRef1": "50001234567890121164", 
+ 
+ 
+"billPaymentRef2": "14333301000005311219", 
+ 
+ 
+"currencyCode": "764", 
+ 
+ 
+"channelCode": "PMH", 
+ 
+ 
+"transactionType": "Domestic Transfers" 
+ 
+} 
+} 
+11. การใช้งานโดยภาษา PHP 
+การใช้งานโดยภาษา PHP ให้เขียนโค้ดดังนี้ 
+
+
+=== PAGE 11 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+11 of 25 
+ซอร์สโค้ด 4 ตัวอย่างไฟล์ test_qr.php ที่ใช้ทดสอบการสร้างภาพ QR 
+<?php 
+$wsdl = 'https://eduserv.ku.ac.th/qr/xml/qr.wsdl'; 
+ 
+$client = new SoapClient($wsdl, 
+ array( 
+  'trace' => TRUE, 
+  'exceptions' => 0, 
+  'style' => SOAP_DOCUMENT, 
+  'use' => SOAP_LITERAL 
+ ) 
+); 
+ 
+$req = array( 
+    "expireDate"=>"301119", 
+    "appCode"=>"34", 
+    "transactionId"=>"1234", 
+    "amount"=>1.0, 
+    "ref1Prefix"=>"00001234567890123", 
+    "ref2Prefix"=>"000012", 
+    "billerSuffix"=>"87", 
+    "callbackUrl"=>"https://sriracha.ku.ac.th/payment/notify.php" 
+); 
+$resp = $client->getOeaQr($req); 
+// echo var_dump($resp); 
+?> 
+<img src="<?php echo $resp->qrResult->content ?>"> 
+ผลการรันบนเครื่อง Local ที่ติดตั้ง XAMPP และรัน PHP ดังกล่าวข้างต้น 
+ 
+รูปภาพ 8 ผลการท างานของโปรแกรมภาษา PHP เพื่อสร้าง QR Code 
+ข้อควรระวัง มีดังต่อไปนี้ 
+▪ การทดลองด้วย PHP จะต้องเปิด Soap Extension ก่อนโดยแก้ไข php.ini ที่บรรทัด extension=soap ให้เอา
+คอมเมนต์ออกแล้ว Restart Apache Server ใหม่ 
+▪ billerSuffix = 87 เป็นของ สบศ. บางเขน ถ้าเป็นที่วิทยาเขตอื่นจะมีเลขรหัสของตนเอง ให้ใช้เลขนั้น 
+▪ ref1Prefix มีขนาด 17 หลักเท่านั้น 3 หลักหลังต้องเว้นไว้ให้ SCB ใช้เพื่อเป็น Check Digit 
+▪ ref2Prefix มีขนาด 6 หลักเท่านั้น พื้นที่เหลือด้านหลังใช้โดยระบบเองและใช้โดย Expired Date ของ SCB 
+▪ ถ้าไม่ระบุต าแหน่ง callbackUrl ก็ได้ ระบบจะไม่ยิง Notification จาก Bank ต่อเนื่องไปให้  
+▪ ค่าของ transactionId เป็นค่าอะไรก็ได้เพื่อใช้ผูกโยงกับระบบต้นขั่วของตนเอง 
+▪ ค่าของ appCode ควรจะปรึกษากันกับทุกวิทยาเขตเนื่องจากมีรายการ appCode ที่เป็นที่รู้กันอยู่แล้วว่าใช้ท า
+อะไรบ้าง 
+
+
+=== PAGE 12 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+12 of 25 
+12. การใช้งานโดยภาษา Java 
+แนวทางการใช้งานโดยภาษา Java ให้ติดตั้ง JDK 1.8 (ไม่ควรสูงกว่านี้เพราะทดสอบที่ 1.8) แล้ว 
+▪ ดาวน์โหลดไฟล์ WSDL จาก https://eduserv.ku.ac.th/qr/xml/qr.wsdl 
+▪ ดาวน์โหลดไฟล์ XSD จาก https://eduserv.ku.ac.th/qr/xml/qr.xsd มาวางไว้ที่เดียวกัน 
+▪ ใช้ค าสั่ง wsimport (ติดมากับ JDK) สร้าง Soap Client เช่นตัวอย่างนี้ 
+▪ wsimport -encoding UTF-8 -d c:/temp/qr/classes -s c:/temp/qr/src -keep -p ku.qr.client qr.wsdl 
+▪ เมื่อได้ไฟล์ *.java แล้วให้เรียกใช้ QrService และ QrPort ฟังก์ชัน getOeaQr รูปแบบเดียวกับที่ระบุไว้ใน API ก็
+จะได้เนื้อหาไฟล์ภาพ QR กลับมา 
+รายละเอียดซอร์สโค้ดตัวอย่างจะพัฒนาคู่มือในรอบถัดไป 
+13. การใช้งานโดยภาษา JavaScript 
+แนวทางการใช้งานโดยภาษา JavaScript ให้ท าดังนี้ 
+▪ ดาวน์โหลดไฟล์ qr.js จาก https://eduserv.ku.ac.th/qr/js/qr.js  
+▪ ดาวน์โหลดไฟล์ aes-main.js จาก https://eduserv.ku.ac.th/qr/js/aes-main.js  
+น าไฟล์ 2 ไฟล์นี้มารวมไว้ใน <script src … > ตามแบบปกติของการเขียนโค้ดภาษา JavaScript หลังจากนั้นจะสามารถ
+เขียนโค้ดเพื่อเรียกใช้ Qr ได้ (ผ่านทาง Soap Service) เช่นนี้ 
+ซอร์สโค้ด 5 ตัวอย่างบางส่วนของซอร์สโค้ด JavaScript ที่เรียกใช้ QR API เพื่อดึงภาพ QR 
+Page.prototype.clickBuild = function() { 
+ console.log('User click Build ...'); 
+  
+ // clear image data 
+ $('#qrImage').attr('src', '../images/qr.png'); 
+  
+ // get data from form 
+ var expireDate = $('input[name=txtExpireDate]').val(); 
+ var ref1Prefix = $('#txtRef1Prefix').val(); 
+ var ref2Prefix = $('#txtRef2Prefix').val(); 
+ var amount = $('#txtAmount').val(); 
+ var transactionId = $('#txtTransactionId').val(); 
+ var appCode = $('#txtAppCode').val(); 
+ var billerSuffix = $('#txtBillerSuffix').val(); 
+  
+ // prepare request data 
+ var request = new GetOeaQrRequest(); 
+ request.setExpireDate(expireDate);  
+ request.setAppCode(appCode); 
+ request.setRef1Prefix(ref1Prefix); 
+ request.setRef2Prefix(ref2Prefix); 
+ request.setBillerSuffix(billerSuffix); 
+ request.setTransactionId(transactionId); 
+ request.setAmount(amount); 
+  
+ // request to service 
+ var xmlDoc = request.marshal(); 
+ XUtils.debugXML(xmlDoc); 
+ var service = new QrService(); 
+ var options = { noProgressBar : false, secure : false }; 
+ var self = this; 
+ service.getOeaQr(request, true, function(resp, xml) { 
+  self.clickOeaQrResponse(resp, xml); 
+ }, options);  
+} 
+ 
+Page.prototype.clickOeaQrResponse = function(resp, xml) { 
+ console.log(xml); 
+ if(resp.getSuccess() == 'true') { 
+//  alert('Generate QR code successful.'); 
+   
+
+
+=== PAGE 13 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+13 of 25 
+  // retrieve image data putting into img tag 
+  var result = resp.getQrResult(); 
+   
+  // ดึงรหัสอ้างอิงไปเก็บไว้ในระบบต้นทาง 
+  var qrId = result.getId();   // รหัส ID นี้ไม่ซ ้ากันเลย เป็นรหัสประจ าตัว QR 
+  var appId = resp.getAppId(); // รหัส ID นี้ซ ้ากันได้ AppCode ต่างกัน 
+   
+  // แสดงรูปภาพ 
+  var content = result.getContent(); 
+  $('#qrImage').attr('src', content); 
+   
+ } else { 
+  var error = resp.getErrorInfo(); 
+  var message = error.getMessage(); 
+  var stackTrace = error.getStackTrace(); 
+  var code = error.getCode(); 
+  alert(code + ' : ' + message + '\n' + stackTrace); 
+ }  
+} 
+ในโค้ดข้างต้นอธิบายได้ดังนี้ 
+▪ ดึงข้อมูลจากแบบฟอร์ม 
+▪ กรอกใส่เข้าไปในออบเจกต์ GetOeaQrRequest 
+▪ เรียกใช้เมธอด getOeaQr ของ QrService  
+▪ ได้ภาพกลับมาเข้ามาที่ฟังก์ชัน clickOeaQrResponse 
+▪ ดึงข้อมูลภาพตอบกลับด้วย getContent 
+▪ เอาภาพไปแสดงผลในแท็ก <img> ด้วยการแทนที่เข้าไปในแอททริบิวท์ src 
+
+
+=== PAGE 14 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+14 of 25 
+ Appendix A - WSDL และ XSD 
+ถ้าท่านคัดลองเนื้อหา WSDL จากเอกสารนี้ไปและบันทึกไว้เป็นไฟล์ qr.wsdl เมื่อเปิดดูด้วยเครื่องมือที่เข้าใจเว็บเซอร์วิส 
+(เช่น XML Spy) ท่านควรจะพบภาพโครงสร้างเว็บเซอร์วิสดังนี้ 
+ 
+รูปภาพ 9 โครงสร้างเว็บเซอร์วิสจากไฟล์ qr.wsdl 
+ต่อไปนี้เป็นเนื้อหา WSDL ที่จะใช้งาน 
+ซอร์สโค้ด 6 ไฟล์ qr.wsdl (Web Services Description Language) 
+<?xml version="1.0"?> 
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" 
+xmlns:ns="http://schemas.xmlsoap.org/soap/encoding/" 
+xmlns:p="http://www.w3.org/2001/XMLSchema" 
+xmlns:qr="http://registrar.ku.ac.th/qr/type" 
+xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" 
+xmlns:tns="http://registrar.ku.ac.th/qr/service" name="QrService" 
+targetNamespace="http://registrar.ku.ac.th/qr/service"> 
+ 
+<types> 
+ 
+ 
+<schema xmlns="http://www.w3.org/2001/XMLSchema"> 
+ 
+ 
+ 
+<import namespace="http://registrar.ku.ac.th/qr/type" 
+schemaLocation="qr.xsd"/> 
+ 
+ 
+</schema> 
+ 
+</types> 
+ 
+<message name="getOeaQrRequest"> 
+ 
+ 
+<part name="getOeaQrRequestPart" element="qr:getOeaQrRequest"/> 
+ 
+</message> 
+ 
+<message name="getOeaQrResponse"> 
+ 
+ 
+<part name="getOeaQrResponsePart" element="qr:getOeaQrResponse"/> 
+ 
+</message> 
+ 
+<message name="getQrRequest"> 
+ 
+ 
+<part name="getQrRequestPart" element="qr:getQrRequest"/> 
+ 
+</message> 
+ 
+<message name="getQrResponse"> 
+ 
+ 
+<part name="getQrResponsePart" element="qr:getQrResponse"/> 
+ 
+</message> 
+ 
+<portType name="QrSystem"> 
+ 
+ 
+<operation name="getOeaQr"> 
+ 
+ 
+ 
+<input message="tns:getOeaQrRequest"/> 
+ 
+ 
+ 
+<output message="tns:getOeaQrResponse"/> 
+ 
+ 
+</operation> 
+ 
+ 
+<operation name="getQr"> 
+ 
+ 
+ 
+<input message="tns:getQrRequest"/> 
+ 
+ 
+ 
+<output message="tns:getQrResponse"/> 
+ 
+ 
+</operation> 
+ 
+</portType> 
+ 
+<binding name="QrBinding" type="tns:QrSystem"> 
+ 
+ 
+<soap:binding style="document" 
+transport="http://schemas.xmlsoap.org/soap/http"/> 
+ 
+ 
+<operation name="getOeaQr"> 
+ 
+ 
+ 
+<soap:operation 
+soapAction="http://registrar.ku.ac.th/qr/service/getOeaQr"/> 
+ 
+ 
+ 
+<input> 
+ 
+ 
+ 
+ 
+<soap:body use="literal"/> 
+ 
+ 
+ 
+</input> 
+ 
+ 
+ 
+<output> 
+ 
+ 
+ 
+ 
+<soap:body use="literal"/> 
+ 
+ 
+ 
+</output> 
+ 
+ 
+</operation> 
+ 
+ 
+<operation name="getQr"> 
+ 
+ 
+ 
+<soap:operation soapAction="http://registrar.ku.ac.th/qr/service/getQr"/> 
+ 
+ 
+ 
+<input> 
+
+
+=== PAGE 15 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+15 of 25 
+ 
+ 
+ 
+ 
+<soap:body use="literal"/> 
+ 
+ 
+ 
+</input> 
+ 
+ 
+ 
+<output> 
+ 
+ 
+ 
+ 
+<soap:body use="literal"/> 
+ 
+ 
+ 
+</output> 
+ 
+ 
+</operation> 
+ 
+</binding> 
+ 
+<service name="QrService"> 
+ 
+ 
+<documentation>QrService</documentation> 
+ 
+ 
+<port name="QrPort" binding="tns:QrBinding"> 
+ 
+ 
+ 
+<soap:address location="https://eduserv.ku.ac.th/qrTest/service"/> 
+ 
+ 
+</port> 
+ 
+</service> 
+</definitions> 
+ในไฟล์ข้างต้นจะอ้างอิงโครงสร้างข้อมูลจากไฟล์ qr.xsd ซึ่งมีเนื้อหาดังนี้ 
+ซอร์สโค้ด 7 ไฟล์ qr.xsd (XML Schema ส าหรับเป็นโครงสร้างข้อมูลให้กับไฟล์ qr.wsdl) 
+<?xml version="1.0" encoding="UTF-8"?> 
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+xmlns:qr="http://registrar.ku.ac.th/qr/type" 
+targetNamespace="http://registrar.ku.ac.th/qr/type" elementFormDefault="qualified" 
+attributeFormDefault="unqualified"> 
+ 
+<xs:complexType name="ConfirmType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>ข้อมูลเก็บทุกครั้งที่ได้รับเมสเสจจากธนาคาร</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="id" type="xs:integer" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสข้อมูล</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="requestHost" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestAddress" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestPort" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="localAddress" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="localPort" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestPath" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestAgent" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestReferer" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestHeader" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestContentType" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestContentLength" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestProtocol" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestMethod" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestScheme" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestUser" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestLocale" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestCookie" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestBody" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="payeeProxyId" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="payeeProxyType" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="payeeAccountNumber" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="payeeName" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="payerProxyId" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="payerProxyType" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="payerAccountNumber" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="payerName" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="sendingBankCode" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="receivingBankCode" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="amount" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="transactionId" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="transactionDateandTime" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="billPaymentRef1" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="billPaymentRef2" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="billPaymentRef3" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="currencyCode" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="beginTime" type="xs:dateTime" minOccurs="0"/> 
+
+
+=== PAGE 16 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+16 of 25 
+ 
+ 
+ 
+<xs:element name="endTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="duration" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="notifyStatus" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>Y = ได้แจ้งกลับลูกค้าแล้ว, N = ยังไม่แจ้งกลับ</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="status" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>สถานะ Y = ใช้งาน, N = ไม่ใช้งาน</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="createTime" type="xs:dateTime" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>วันเวลาที่สร้าง</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="createBy" type="xs:integer" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสผู้ใช้ที่เป็นผู้สร้าง</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="updateTime" type="xs:dateTime" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>วันเวลาที่แก้ไข</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="updateBy" type="xs:integer" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสผู้ใช้ที่เป็นผู้แก้ไข</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="payerAccountName" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="channelCode" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="transactionType" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="notifyMax" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="notifyRetry" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="notifyTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="notifyNext" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="editState" type="xs:string" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="ConfirmListType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>รายการข้อมูลเก็บทุกครั้งที่ได้รับเมสเสจจากธนาคาร</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="confirm" type="qr:ConfirmType" minOccurs="0" 
+maxOccurs="unbounded"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="ConfirmItemType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>ข้อมูลอย่างย่อของเก็บทุกครั้งที่ได้รับเมสเสจจากธนาคาร</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="id" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="ConfirmItemsType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>รายการข้อมูลอย่างย่อของเก็บทุกครั้งที่ได้รับเมสเสจจากธนาคาร</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="confirmItem" type="qr:ConfirmItemType" minOccurs="0" 
+maxOccurs="unbounded"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:element name="confirm" type="qr:ConfirmType"> 
+ 
+ 
+<xs:annotation> 
+
+
+=== PAGE 17 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+17 of 25 
+ 
+ 
+ 
+<xs:documentation>ตัวอย่างข้อมูลเก็บทุกครั้งที่ได้รับเมสเสจจากธนาคาร</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+</xs:element> 
+ 
+<xs:complexType name="CounterType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>ข้อมูล</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="name" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="value" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="editState" type="xs:string" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="CounterListType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>รายการข้อมูล</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="counter" type="qr:CounterType" minOccurs="0" 
+maxOccurs="unbounded"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="CounterItemType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>ข้อมูลอย่างย่อของ</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="name" type="xs:string" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="CounterItemsType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>รายการข้อมูลอย่างย่อของ</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="counterItem" type="qr:CounterItemType" minOccurs="0" 
+maxOccurs="unbounded"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:element name="counter" type="qr:CounterType"/> 
+ 
+<xs:complexType name="ErrorType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>ข้อมูลเก็บข้อผิดพลาดทั้งหมดในระบบ</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="id" type="xs:integer" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสข้อมูล</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="exception" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="message" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="stackTrace" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="freeMemory" type="xs:decimal" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="freeDiskspace" type="xs:decimal" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="status" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>สถานะ Y = ใช้งาน, N = ไม่ใช้งาน</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="createTime" type="xs:dateTime" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>วันเวลาที่สร้าง</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="createBy" type="xs:integer" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสผู้ใช้ที่เป็นผู้สร้าง</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+
+
+=== PAGE 18 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+18 of 25 
+ 
+ 
+ 
+<xs:element name="updateTime" type="xs:dateTime" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>วันเวลาที่แก้ไข</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="updateBy" type="xs:integer" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสผู้ใช้ที่เป็นผู้แก้ไข</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="editState" type="xs:string" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="ErrorListType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>รายการข้อมูลเก็บข้อผิดพลาดทั้งหมดในระบบ</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="error" type="qr:ErrorType" minOccurs="0" 
+maxOccurs="unbounded"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="ErrorItemType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>ข้อมูลอย่างย่อของเก็บข้อผิดพลาดทั้งหมดในระบบ</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="id" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="ErrorItemsType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>รายการข้อมูลอย่างย่อของเก็บข้อผิดพลาดทั้งหมดในระบบ</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="errorItem" type="qr:ErrorItemType" minOccurs="0" 
+maxOccurs="unbounded"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:element name="error" type="qr:ErrorType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>ตัวอย่างข้อมูลเก็บข้อผิดพลาดทั้งหมดในระบบ</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+</xs:element> 
+ 
+<xs:complexType name="NotifyType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>ข้อมูลเก็บทุกครั้งที่ Notify กลับไปที่ Consumer</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="id" type="xs:integer" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสข้อมูล</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="requestHost" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestAddress" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestPort" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="localAddress" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="localPort" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestPath" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestAgent" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestReferer" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="responseStatusLine" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="responseBody" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestHeader" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestBody" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="qrId" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>วันที่หมดอายุ</xs:documentation> 
+
+
+=== PAGE 19 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+19 of 25 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="confirmId" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>เลขประชาชน</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="beginTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="endTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="duration" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="isSuccess" type="xs:boolean" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="errorMessage" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="errorStackTrace" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="status" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>สถานะ Y = ใช้งาน, N = ไม่ใช้งาน</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="createTime" type="xs:dateTime" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>วันเวลาที่สร้าง</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="createBy" type="xs:integer" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสผู้ใช้ที่เป็นผู้สร้าง</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="updateTime" type="xs:dateTime" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>วันเวลาที่แก้ไข</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="updateBy" type="xs:integer" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสผู้ใช้ที่เป็นผู้แก้ไข</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="editState" type="xs:string" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="NotifyListType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>รายการข้อมูลเก็บทุกครั้งที่ Notify กลับไปที่ Consumer</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="notify" type="qr:NotifyType" minOccurs="0" 
+maxOccurs="unbounded"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="NotifyItemType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>ข้อมูลอย่างย่อของเก็บทุกครั้งที่ Notify กลับไปที่ 
+Consumer</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="id" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="NotifyItemsType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>รายการข้อมูลอย่างย่อของเก็บทุกครั้งที่ Notify กลับไปที่ 
+Consumer</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="notifyItem" type="qr:NotifyItemType" minOccurs="0" 
+maxOccurs="unbounded"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:element name="notify" type="qr:NotifyType"> 
+
+
+=== PAGE 20 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+20 of 25 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>ตัวอย่างข้อมูลเก็บทุกครั้งที่ Notify กลับไปที่ Consumer</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+</xs:element> 
+ 
+<xs:complexType name="QrType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>ข้อมูลเก็บทุกครั้งที่มาสร้าง QR Image</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="id" type="xs:integer" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสข้อมูล</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="requestHost" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestAddress" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestPort" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="localAddress" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="localPort" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestPath" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestAgent" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestReferer" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestHeader" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestContentType" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestContentLength" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestProtocol" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestMethod" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestScheme" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestUser" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestLocale" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestCookie" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="requestBody" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="expireDate" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>วันที่หมดอายุ</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="citizenNo" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>เลขประชาชน</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="year" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>ปี</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="round" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รอบที่</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="amount" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>จ านวนเงิน</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="purchaseId" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>เลขที่สั่งซื้อ</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="ref1" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>อ้างอิง 1</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="ref2" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+
+
+=== PAGE 21 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+21 of 25 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>อ้างอิง 2</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="qrData" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>ข้อมูล QR ทั้งหมดที่สร้างขึ้น</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="callbackUrl" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>URL ที่ใช้แจ้งกลับ</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="beginTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="endTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="duration" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="status" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>สถานะ Y = ใช้งาน, N = ไม่ใช้งาน</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="createTime" type="xs:dateTime" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>วันเวลาที่สร้าง</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="createBy" type="xs:integer" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสผู้ใช้ที่เป็นผู้สร้าง</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="updateTime" type="xs:dateTime" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>วันเวลาที่แก้ไข</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="updateBy" type="xs:integer" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสผู้ใช้ที่เป็นผู้แก้ไข</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="apiVersion" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="billerSuffix" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสท่อนหลัง 2 ตัวของ Biller ID เป็นหน่วยงานย่อย เช่น 87 (เวอร์ชัน 
+1.1)</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="ref1Prefix" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>17 หลักแรกของ ref1 (เวอร์ชัน 1.1)</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="ref2Prefix" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>6 หลักแรกของ ref2 (เวอร์ชัน 1.1)</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="transactionId" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสอ้างอิงต้นขั่ว (เวอร์ชัน 1.1)</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="appCode" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัส App Code เช่น 1 - TCAS, 2 - KU9 (เวอร์ชัน 
+1.1)</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="appId" type="xs:integer" minOccurs="0"> 
+
+
+=== PAGE 22 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+22 of 25 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัส QR ภายใต้ App (เวอร์ชัน 1.1)</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="editState" type="xs:string" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="QrListType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>รายการข้อมูลเก็บทุกครั้งที่มาสร้าง QR Image</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="qr" type="qr:QrType" minOccurs="0" 
+maxOccurs="unbounded"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="QrItemType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>ข้อมูลอย่างย่อของเก็บทุกครั้งที่มาสร้าง QR Image</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="id" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="QrItemsType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>รายการข้อมูลอย่างย่อของเก็บทุกครั้งที่มาสร้าง QR Image</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="qrItem" type="qr:QrItemType" minOccurs="0" 
+maxOccurs="unbounded"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:element name="qr" type="qr:QrType"> 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+<xs:documentation>ตัวอย่างข้อมูลเก็บทุกครั้งที่มาสร้าง QR Image</xs:documentation> 
+ 
+ 
+</xs:annotation> 
+ 
+</xs:element> 
+ 
+<!-- Below content is copy from 
+[d:/workshop/payment/qr/WebContent/xml/qr_inc.xsd] --> 
+ 
+<!--=====================================--> 
+ 
+<!--สร้าง OEA QR Code (เวอรืชันใหม่ 20191128 ปรับปรุงให้สามารถใช้ SCB Check Digit ได้)--> 
+ 
+<!--=====================================--> 
+ 
+<xs:complexType name="GetOeaQrRequestType"> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="expireDate" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>วันหมดอายุ รูปแบบ yyMMdd</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="appCode" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสแอพพลิเคชัน เช่น 1, 2, 3</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="transactionId" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>เลขที่ธุรกรรมของระบบต้นทาง</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="amount" type="xs:double" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>จ านวนเงิน</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="ref1Prefix" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>ข้อมูลอ้างอิงขนาด 17 หลักที่ Ref1 ต้องเป็นตัวเลขทั้งหมด
+</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+
+
+=== PAGE 23 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+23 of 25 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="ref2Prefix" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>ข้อมูลอ้างอิงขนาด 6 หลักที่ Ref2 ต้องเป็นตัวเลขทั้งหมด
+</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="billerSuffix" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>รหัสหน่วยงานย่อยของ Biller ID ใหญ่ มีค่าระหว่าง 0 .. 
+99</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+ 
+<xs:element name="callbackUrl" type="xs:string" minOccurs="0"> 
+ 
+ 
+ 
+ 
+<xs:annotation> 
+ 
+ 
+ 
+ 
+ 
+<xs:documentation>ต าแหน่ง URL ที่จะให้แจ้งกลับเมื่อเกิดธุรกรรม</xs:documentation> 
+ 
+ 
+ 
+ 
+</xs:annotation> 
+ 
+ 
+ 
+</xs:element> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:element name="getOeaQrRequest" type="qr:GetOeaQrRequestType"/> 
+ 
+<xs:complexType name="GetOeaQrResponseType"> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="qrResult" type="qr:QrResultType" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="appCode" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="appId" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="transactionId" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="errorInfo" type="qr:ErrorInfoType" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="startTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="endTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="duration" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="success" type="xs:boolean" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:element name="getOeaQrResponse" type="qr:GetOeaQrResponseType"/> 
+ 
+<!--=====================================--> 
+ 
+<!--สร้าง QR Code (เวอร์ชันที่ใช้กับโครงการเรียนล่วงหน้า)--> 
+ 
+<!--=====================================--> 
+ 
+<xs:complexType name="GetQrRequestType"> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="expireDate" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="citizenNo" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="year" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="round" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="amount" type="xs:double" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="ref" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="callbackUrl" type="xs:string" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:element name="getQrRequest" type="qr:GetQrRequestType"/> 
+ 
+<xs:complexType name="QrResultType"> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="id" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="qrData" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="kind" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="content" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="width" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="height" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="ErrorInfoType"> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="code" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="message" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="stackTrace" type="xs:string" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="GetQrResponseType"> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="qrResult" type="qr:QrResultType" minOccurs="0"/> 
+
+
+=== PAGE 24 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+24 of 25 
+ 
+ 
+ 
+<xs:element name="errorInfo" type="qr:ErrorInfoType" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="ref" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="startTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="endTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="duration" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="success" type="xs:boolean" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:element name="getQrResponse" type="qr:GetQrResponseType"/> 
+ 
+<!--=====================================--> 
+ 
+<!--ใช้งานทั่วไป--> 
+ 
+<!--=====================================--> 
+ 
+<xs:complexType name="PageNavigatorType"> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="rowCount" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="rowPerPage" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="pageCount" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="pageIndex" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="startOffset" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="endOffset" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="ItemType"> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="id" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="code" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="name" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="value" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="selected" type="xs:boolean" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="ItemListType"> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="item" type="qr:ItemType" minOccurs="0" 
+maxOccurs="unbounded"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:complexType name="CommonResponseType"> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="success" type="xs:boolean" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="resultId" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="resultType" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="resultMessage" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="resultScript" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="errorCode" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="errorMessage" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="errorStackTrace" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="errorScript" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="confirmMessage" type="xs:string" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="beginTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="endTime" type="xs:dateTime" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="duration" type="xs:integer" minOccurs="0"/> 
+ 
+ 
+ 
+<xs:element name="userId" type="xs:string" minOccurs="0"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+ 
+<xs:element name="commonResponse" type="qr:CommonResponseType"/> 
+ 
+<!--=====================================--> 
+ 
+<!--ใช้ส าหรับส่ง Id เป็น list เพื่อไปลบ หรือ ไปค้นหาข้อมูล --> 
+ 
+<!--=====================================--> 
+ 
+<xs:complexType name="IdListType"> 
+ 
+ 
+<xs:sequence> 
+ 
+ 
+ 
+<xs:element name="id" type="xs:integer" minOccurs="0" 
+maxOccurs="unbounded"/> 
+ 
+ 
+</xs:sequence> 
+ 
+</xs:complexType> 
+</xs:schema> 
+
+
+=== PAGE 25 ===
+ 
+ 
+ 
+ 
+ 
+คู่มือการเชื่อมต่อระบบสร้าง QR ช าระเงิน 
+By Sorapong Ruanmanee | v1.4 | 20230703 | sorapong.r@ku.th  
+25 of 25 
+ถ้าท่านจะใช้ไฟล์ qr.wsdl และ qr.xsd เพื่อสร้างโค้ดอัตโนมัติ ท่านจ าเป็นต้องวางทั้ง 2 ไฟล์นี้ไว้ที่โฟลเดอร์เดียวกัน และชี้
+ต าแหน่งมาที่ไฟล์ qr.wsdl และให้เครื่องมือของท่านสร้างโค้ดอัตโนมัติตามภาษาของแพลตฟอร์มนั้นๆขึ้นก็จะท าให้
+สามารถน าไปพัฒนาแอพพลิเคชันเพื่อเรียกใช้งานระบบนี้ได้ 
+ 
+
+
