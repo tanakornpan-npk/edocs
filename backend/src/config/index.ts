@@ -20,7 +20,7 @@ export const config = {
     accountNumber: process.env.PROMPTPAY_ACCOUNT || '0994000159491',
   },
   thaiQr: {
-    billerId: process.env.THAI_QR_BILLER_ID || '099400063727601',
+    billerId: process.env.THAI_QR_BILLER_ID || '099400063727650',
   },
   kuCentralQr: {
     soapUrl: process.env.KU_QR_SOAP_URL || 'https://fin.ku.th/qr/service',

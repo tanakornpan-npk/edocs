@@ -84,7 +84,7 @@ export async function migrateThaiQr() {
       ALTER TABLE biller_configs
       ADD COLUMN IF NOT EXISTS use_central_service BOOLEAN DEFAULT FALSE,
       ADD COLUMN IF NOT EXISTS soap_url VARCHAR(255) DEFAULT 'https://fin.ku.th/qr/service',
-      ADD COLUMN IF NOT EXISTS biller_suffix VARCHAR(10) DEFAULT '01',
+      ADD COLUMN IF NOT EXISTS biller_suffix VARCHAR(10) DEFAULT '50',
       ADD COLUMN IF NOT EXISTS app_code VARCHAR(10) DEFAULT '06',
       ADD COLUMN IF NOT EXISTS callback_url VARCHAR(255) DEFAULT 'https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback';
     `);
@@ -93,15 +93,16 @@ export async function migrateThaiQr() {
     // 7. Seed/Update Active Biller Config
     await client.query(`UPDATE biller_configs SET is_active = false;`);
     await client.query(`
-      INSERT INTO biller_configs (biller_id, merchant_name, service_name_th, is_active)
-      VALUES ('099400063727601', 'KASETSART UNIVERSITY CSC', 'มหาวิทยาลัยเกษตรศาสตร์ ว.เฉลิมพระเกียรติฯ', true)
+      INSERT INTO biller_configs (biller_id, merchant_name, service_name_th, is_active, biller_suffix)
+      VALUES ('099400063727650', 'KU CSC SAKON NAKHON', 'มหาวิทยาลัยเกษตรศาสตร์ ว.เฉลิมพระเกียรติฯ', true, '50')
       ON CONFLICT (biller_id) DO UPDATE SET
         merchant_name = EXCLUDED.merchant_name,
         service_name_th = EXCLUDED.service_name_th,
+        biller_suffix = '50',
         is_active = true,
         updated_at = CURRENT_TIMESTAMP;
     `);
-    console.log('✅ Seeded/Updated active biller config to 099400063727601');
+    console.log('✅ Seeded/Updated active biller config to 099400063727650');
 
     // 8. Seed Payment Categories
     const categoriesData = [

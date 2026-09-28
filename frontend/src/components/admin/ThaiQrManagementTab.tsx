@@ -99,12 +99,12 @@ export const ThaiQrManagementTab: React.FC = () => {
     app_code?: string;
     callback_url?: string;
   }>({
-    biller_id: '099400063727601',
-    merchant_name: 'KASETSART UNIVERSITY CSC',
+    biller_id: '099400063727650',
+    merchant_name: 'KU CSC SAKON NAKHON',
     service_name_th: 'มหาวิทยาลัยเกษตรศาสตร์ ว.เฉลิมพระเกียรติฯ',
     use_central_service: false,
     soap_url: 'https://fin.ku.th/qr/service',
-    biller_suffix: '01',
+    biller_suffix: '50',
     app_code: '06',
     callback_url: 'https://service.csc.ku.ac.th/edocs/api/payment/ku-qr-callback',
   });
@@ -674,7 +674,7 @@ export const ThaiQrManagementTab: React.FC = () => {
                   value={billerForm.biller_id}
                   onChange={(e) => setBillerForm({ ...billerForm, biller_id: e.target.value.replace(/[^0-9]/g, '') })}
                   className="w-full px-3 py-2 text-sm font-mono border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#006633]/20 focus:outline-none"
-                  placeholder="เช่น 099400063727601"
+                  placeholder="เช่น 099400063727650"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
                   หมายเลขประจำตัวผู้เสียภาษี 13 หลัก + รหัสบริการ 2 หลัก
@@ -692,7 +692,7 @@ export const ThaiQrManagementTab: React.FC = () => {
                   value={billerForm.merchant_name}
                   onChange={(e) => setBillerForm({ ...billerForm, merchant_name: e.target.value })}
                   className="w-full px-3 py-2 text-sm uppercase font-mono border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#006633]/20 focus:outline-none"
-                  placeholder="เช่น KASETSART UNIVERSITY CSC"
+                  placeholder="เช่น KU CSC SAKON NAKHON"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
                   ความยาวไม่เกิน 25 ตัวอักษรตามมาตรฐาน EMVCo Tag 59

@@ -90,8 +90,8 @@ export class ThaiQrBillPaymentService {
     }
 
     return {
-      billerId: config.thaiQr.billerId || '099400063727601',
-      merchantName: 'KASETSART UNIVERSITY CSC',
+      billerId: config.thaiQr.billerId || '099400063727650',
+      merchantName: 'KU CSC SAKON NAKHON',
       serviceNameTh: 'มหาวิทยาลัยเกษตรศาสตร์ ว.เฉลิมพระเกียรติฯ',
       useCentralService: false,
       soapUrl: process.env.KU_QR_SOAP_URL || 'https://fin.ku.th/qr/service',
